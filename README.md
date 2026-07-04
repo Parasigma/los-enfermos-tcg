@@ -4,6 +4,17 @@ Un juego de cartas 1 vs 1 al estilo Hearthstone con la temática de **Los Enferm
 Tú eres **Rafael Rovira «El Director»** defendiendo el Sanatorio San José contra
 **Nikuman «La Mano Negra»** y el plan de ciborgización de Cauntu.
 
+## 🌍 Jugar online desde cualquier dispositivo
+
+**https://parasigma.github.io/los-enfermos-tcg/**
+
+Funciona en cualquier navegador: PC, Android, iPhone/iPad... En el móvil,
+gira a horizontal. En iPhone: Safari → Compartir → **Añadir a pantalla de
+inicio** para jugarlo a pantalla completa como una app. El progreso se
+guarda en cada dispositivo.
+
+Repositorio: https://github.com/Parasigma/los-enfermos-tcg
+
 ## ▶️ Cómo jugar
 
 **Como aplicación de escritorio (recomendado):**
