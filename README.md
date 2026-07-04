@@ -13,6 +13,11 @@ gira a horizontal. En iPhone: Safari → Compartir → **Añadir a pantalla de
 inicio** para jugarlo a pantalla completa como una app. El progreso se
 guarda en cada dispositivo.
 
+Nota: en la versión web pública el modo «Jugar Online» por IP no está
+disponible (el navegador bloquea conexiones locales desde páginas https);
+para el 1v1 online usa la app de escritorio, la APK o el navegador en
+`http://` local.
+
 Repositorio: https://github.com/Parasigma/los-enfermos-tcg
 
 ## ▶️ Cómo jugar
