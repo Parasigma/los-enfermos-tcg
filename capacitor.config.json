@@ -1,0 +1,12 @@
+{
+  "appId": "com.losenfermos.tcg",
+  "appName": "Los Enfermos TCG",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

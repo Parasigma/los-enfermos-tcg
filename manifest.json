@@ -1,0 +1,17 @@
+{
+  "name": "Los Enfermos: El TCG del Manicomio",
+  "short_name": "Los Enfermos TCG",
+  "description": "Juego de cartas 1v1 con el lore de Los Enfermos",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0b1a17",
+  "theme_color": "#16403a",
+  "icons": [
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

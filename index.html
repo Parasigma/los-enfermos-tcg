@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Los Enfermos: El TCG del Manicomio</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/icon-512.png">
+<link rel="apple-touch-icon" href="assets/icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#16403a">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="game">
+
+  <!-- Escenario de proporción fija (1672x941) escalado a la ventana -->
+  <div id="stage">
+    <div id="enemy-hand" class="hand-row"></div>
+    <div id="enemy-hud" class="hud"></div>
+    <div id="enemy-board" class="board-row"></div>
+    <div id="player-board" class="board-row"></div>
+    <div id="player-hud" class="hud"></div>
+    <div id="player-hand" class="hand-row"></div>
+    <button id="end-turn" aria-label="Fin del turno"></button>
+    <div id="log-panel"><div id="log"></div></div>
+    <div id="log-toggle" title="Ocultar / mostrar la crónica"></div>
+    <button id="btn-pause" title="Menú de pausa">⏸</button>
+    <button id="intro-skip" class="small-btn hidden">⏭ Saltar</button>
+  </div>
+
+  <!-- fundido suave al cargar la partida -->
+  <div id="fade-layer"></div>
+
+  <!-- INSPECTOR DE CARTA: doble clic para verla en grande con falso 3D -->
+  <div id="card-inspector" class="hidden">
+    <div id="ci-backdrop"></div>
+    <div id="ci-holder">
+      <div id="ci-card"></div>
+    </div>
+    <button id="ci-close" class="small-btn">✖ Cerrar</button>
+  </div>
+
+  <div id="preview"></div>
+  <div id="ai-reveal"></div>
+
+  <svg id="arrow-layer">
+    <line id="arrow-line" x1="0" y1="0" x2="0" y2="0"/>
+    <polygon id="arrow-head" points="0,0 0,0 0,0"/>
+  </svg>
+
+  <div id="turn-banner"></div>
+  <div id="fx-layer"></div>
+
+  <!-- MENÚ DE PAUSA -->
+  <div id="pause-menu" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:42px">⏸ PAUSA</h2>
+      <div class="settings-list pause-settings">
+        <div class="setting-row"><span>🔊 Sonido</span><button id="p-set-sound" class="toggle"></button></div>
+        <div class="setting-row"><span>⏩ IA rápida</span><button id="p-set-fast" class="toggle"></button></div>
+        <div class="setting-row"><span>📜 Mostrar crónica</span><button id="p-set-log" class="toggle"></button></div>
+      </div>
+      <div class="menu-buttons">
+        <button id="btn-resume" class="img-btn">▶️ Continuar</button>
+        <button id="btn-restart-game" class="img-btn">🔁 Reiniciar partida</button>
+        <button id="btn-surrender" class="img-btn">🏳️ Rendirse</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENÚ PRINCIPAL (fondo e identidad pintados en assets/fondo_menu.jpg) -->
+  <div id="main-menu" class="overlay">
+    <div id="menu-stage">
+      <div class="menu-buttons-panel">
+        <button id="btn-play" class="img-btn">⚔️ Partida de 1 Jugador</button>
+        <button id="btn-online" class="img-btn">🌐 Jugar Online</button>
+        <button id="btn-decks" class="img-btn">🃏 Administrar Mazo</button>
+        <button id="btn-shop" class="img-btn">🛒 Tienda de Mazos</button>
+        <button id="btn-settings" class="img-btn">⚙️ Ajustes</button>
+        <div class="coins-badge">💊 <span id="menu-coins">0</span> pastillas</div>
+      </div>
+      <div class="version-tag">v1.3</div>
+    </div>
+  </div>
+
+  <!-- GESTOR DE MAZOS (fondo pintado en assets/fondo_mazos.jpg) -->
+  <div id="deck-screen" class="overlay hidden">
+    <div id="deck-stage">
+      <div id="deck-title"></div>
+      <div id="deck-dropdown" class="hidden"></div>
+      <div id="deck-hero-window" title="Héroe de tu mazo"></div>
+      <button id="btn-hero-cycle" class="painted-btn" title="Cambiar de héroe"></button>
+      <div id="deck-count">30/30</div>
+      <button id="btn-deck-auto" class="painted-btn" aria-label="Auto-completar"></button>
+      <button id="btn-deck-save" class="painted-btn" aria-label="Guardar"></button>
+      <button id="btn-deck-back" class="painted-btn" aria-label="Volver" data-back></button>
+      <div id="collection" class="collection-grid"></div>
+      <div id="deck-list" class="deck-list"></div>
+      <div id="collection-info"></div>
+    </div>
+  </div>
+
+  <!-- TIENDA (fondo pintado en assets/fondo_tienda.png; el arte de los
+       mazos va DETRÁS del marco y asoma por los huecos recortados) -->
+  <div id="shop-screen" class="overlay hidden">
+    <div id="shop-stage">
+      <div id="shop-art"></div>
+      <div id="shop-frame"></div>
+      <div id="shop-ui"></div>
+      <!-- pestañas pintadas en el fondo: solo zonas clicables con brillo -->
+      <div id="shop-tabs">
+        <button id="tab-decks" class="shop-tab active" aria-label="Mazos"></button>
+        <button id="tab-packs" class="shop-tab" aria-label="Sobres"></button>
+      </div>
+      <div id="shop-packs-panel" class="hidden">
+        <p class="lore packs-lore">
+          Cada sobre trae <b>5 cartas</b> al azar — repetidas o totalmente nuevas — y, con mucha
+          suerte, versiones <b>✨ brillantes</b>, <b>🏆 DORADAS</b>, <b>🌀 alteradas</b> o <b>🌈 foil</b>.
+        </p>
+        <div id="pack-area"></div>
+        <div id="pack-info" class="hint"></div>
+      </div>
+      <div id="shop-coins">0</div>
+      <div id="shop-pager">
+        <button id="shop-prev" class="pager-btn">◀</button>
+        <span id="shop-page">1/1</span>
+        <button id="shop-next" class="pager-btn">▶</button>
+      </div>
+      <button id="btn-shop-back" class="painted-btn" data-back aria-label="Volver"></button>
+    </div>
+  </div>
+
+  <!-- JUGAR ONLINE -->
+  <div id="online-screen" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:40px">🌐 JUGAR ONLINE</h2>
+      <p class="lore">
+        Uno crea la partida (<b>host</b>) y el otro se une con la IP del host.<br>
+        En la misma red local funciona directo; por internet el host debe abrir el puerto <b>8688</b>.
+        Cada uno juega con su <b>mazo activo</b>.
+      </p>
+      <div class="online-box">
+        <div id="host-ips" class="ip-list"></div>
+        <button id="btn-host" class="img-btn">🏥 Crear partida (ser host)</button>
+        <div id="host-status" class="hint"></div>
+      </div>
+      <div class="online-box">
+        <div class="join-row">
+          <input id="join-ip" placeholder="IP del host (ej: 192.168.1.30)" spellcheck="false">
+          <button id="btn-join" class="img-btn join-btn">⚔️ Unirse</button>
+        </div>
+        <div id="join-status" class="hint"></div>
+      </div>
+      <button id="btn-online-back" class="img-btn">← Volver</button>
+    </div>
+  </div>
+
+  <!-- AJUSTES -->
+  <div id="settings-screen" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:40px">⚙️ AJUSTES</h2>
+      <div class="settings-list">
+        <div class="setting-row"><span>🔊 Sonido</span><button id="set-sound" class="toggle"></button></div>
+        <div class="setting-row"><span>⏩ IA rápida</span><button id="set-fast" class="toggle"></button></div>
+        <div class="setting-row"><span>📜 Mostrar crónica</span><button id="set-log" class="toggle"></button></div>
+      </div>
+      <div class="menu-buttons">
+        <button id="btn-reset-save" class="small-btn danger">🗑️ Borrar progreso</button>
+        <button class="img-btn" data-back>← Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIN DE PARTIDA -->
+  <div id="end-overlay" class="overlay hidden">
+    <div class="menu-box">
+      <h1 id="end-title" class="logo"></h1>
+      <p id="end-text" class="lore"></p>
+      <p id="end-reward" class="coins-badge"></p>
+      <div class="menu-buttons">
+        <button id="btn-restart" class="img-btn">🔁 Jugar otra vez</button>
+        <button id="btn-to-menu" class="img-btn">🏠 Menú principal</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="js/ilustraciones.js"></script>
+<script src="js/cards.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/menu.js"></script>
+<script src="js/packs.js"></script>
+<script src="js/historia.js"></script>
+<script src="js/online.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

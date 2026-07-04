@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node \"C:\\\\Users\\\\rafa\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-rafa-Documents-CARD-GAME\\\\689a08a5-d007-4d97-9e16-c48cc41f4106\\\\scratchpad\\\\test.js\")",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; foreach \\($f in @\\('tablero.jpg','card_back.png','cards_spell.png'\\)\\) { $img = [System.Drawing.Image]::FromFile\\(\"C:\\\\Users\\\\rafa\\\\Documents\\\\CARD GAME\\\\assets\\\\$f\"\\); Write-Output \"$f -> $\\($img.Width\\) x $\\($img.Height\\)\"; $img.Dispose\\(\\) })",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\(\"C:\\\\Users\\\\rafa\\\\Documents\\\\CARD GAME\\\\assets\\\\monster.png\"\\); Write-Output \"monster.png -> $\\($img.Width\\) x $\\($img.Height\\)\"; $img.Dispose\\(\\))",
+      "PowerShell(Remove-Item \"C:\\\\Users\\\\rafa\\\\Documents\\\\CARD GAME\\\\assets\\\\ilustraciones\\\\mario.png\" -Confirm:$false)",
+      "PowerShell(& \"C:\\\\Users\\\\rafa\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-rafa-Documents-CARD-GAME\\\\689a08a5-d007-4d97-9e16-c48cc41f4106\\\\scratchpad\\\\medir-ventanas.ps1\")",
+      "PowerShell(node \"C:\\\\Users\\\\rafa\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-rafa-Documents-CARD-GAME\\\\689a08a5-d007-4d97-9e16-c48cc41f4106\\\\scratchpad\\\\test-mofeta.js\")"
+    ]
+  }
+}

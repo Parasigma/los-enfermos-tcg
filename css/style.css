@@ -1,0 +1,1951 @@
+/* =========================================================
+   LOS ENFERMOS: EL TCG DEL MANICOMIO
+   UI sobre el arte de assets/ (tablero 1672x941, cartas 209x297)
+   El escenario #stage usa coordenadas de diseño en px y se
+   escala entero a la ventana con transform: scale().
+   ========================================================= */
+
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+:root {
+  --gold: #ffd257;
+  --gold-dark: #b8860b;
+  --parchment: #f3e5c0;
+  --ink: #2b1d0e;
+  --teal-dark: #16403a;
+  --mana: #2196f3;
+  --hp-red: #d32f2f;
+  --atk-yellow: #f5a623;
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'Georgia', 'Palatino Linotype', serif;
+  background: radial-gradient(ellipse at 50% 40%, #17332e 0%, #0b1a17 60%, #050b0a 100%);
+  color: var(--parchment);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* táctil: el tablero gestiona sus propios gestos (arrastres);
+   las zonas con listas mantienen el scroll vertical del dedo */
+#stage, #menu-stage { touch-action: none; }
+.collection-grid, .deck-list, #log, .shop-grid, #shop-packs-panel { touch-action: pan-y; }
+
+#game { position: relative; width: 100vw; height: 100vh; }
+
+/* ---------------- ESCENARIO ---------------- */
+
+#stage {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1672px; height: 941px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  background: url('../assets/tablero.jpg') 0 0 / 100% 100% no-repeat;
+  border-radius: 10px;
+  box-shadow: 0 0 60px rgba(0, 0, 0, .8);
+}
+
+/* ---------------- ZONAS DEL TABLERO ---------------- */
+
+.board-row {
+  position: absolute;
+  left: 258px; width: 1186px;
+  height: 212px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  border-radius: 18px;
+  transition: box-shadow .2s;
+  z-index: 2;
+}
+#enemy-board { top: 206px; }
+#player-board { top: 446px; }
+
+#player-board.drop-hint {
+  box-shadow: inset 0 0 34px rgba(120, 255, 120, .4);
+}
+
+/* mano enemiga (dorsos) */
+#enemy-hand {
+  position: absolute;
+  left: 620px; top: -6px;
+  width: 440px; height: 66px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  z-index: 6;
+}
+
+/* mano del jugador */
+#player-hand {
+  position: absolute;
+  left: 570px; top: 700px;
+  width: 620px; height: 241px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 28px;
+  z-index: 30;
+}
+
+/* ---------------- CARTAS (marcos de assets/) ---------------- */
+
+.card {
+  position: relative;
+  width: 142px; height: 202px;
+  color: var(--ink);
+  border-radius: 10px;
+  flex-shrink: 0;
+  transition: transform .12s ease, filter .12s ease;
+  cursor: default;
+}
+/* el marco va POR ENCIMA de la ilustración (el hueco es transparente) */
+.card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: url('../assets/cards_spell.png') 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+.card.t-minion::after { background-image: url('../assets/card_back.png'); }
+
+/* brillo según rareza (drop-shadow respeta la silueta del PNG) */
+.card.r-rara       { filter: drop-shadow(0 0 5px rgba(59, 123, 212, .8)); }
+.card.r-épica      { filter: drop-shadow(0 0 5px rgba(163, 53, 238, .85)); }
+.card.r-legendaria { filter: drop-shadow(0 0 8px rgba(255, 180, 40, .95)); }
+
+/* coste: sobre el círculo teal pintado (arriba-izquierda) */
+.card .cost {
+  position: absolute;
+  left: 3.5%; top: 2.5%;
+  width: 21%; height: 14.5%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; font-size: 20px;
+  color: #fff;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, .8);
+  z-index: 2;
+}
+.card .cost.discount { color: #8dff9d; }
+
+/* arte en la ventana recortada: la ilustración queda detrás del marco
+   y NUNCA se sale del recuadro (overflow hidden).
+   Medidas del hueco transparente reales (canal alfa del PNG):
+   X 13.4%-84.2%, Y 8.8%-38% — con un pelín de sangrado bajo el marco */
+.card .art {
+  position: absolute;
+  left: 13%; top: 8.5%;
+  width: 71.5%; height: 29.8%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 46px;
+  overflow: hidden;
+  z-index: 0;
+  /* fondo base tras el emoji mientras la carta no tenga ilustración */
+  background: url('../assets/cartas_fondo_basic.jpg') center / cover no-repeat;
+}
+.card .art .art-emoji { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55)); }
+
+.art-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  /* encuadre alto: prioriza la parte superior (las caras) al recortar */
+  object-position: 50% 18%;
+}
+/* con ilustración real, fuera el fondo base y el emoji */
+.art.has-img,
+.m-art.has-img { background: none; }
+.art.has-img .art-emoji,
+.m-art.has-img .art-emoji { display: none; }
+
+.card .name {
+  position: absolute;
+  left: 11%; width: 78%;
+  text-align: center;
+  font-weight: bold;
+  font-size: 11px;
+  line-height: 1.1;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+.card.t-minion .name { top: 40%; height: 12.5%; color: var(--ink); }
+.card.t-spell .name,
+.card.t-weapon .name { top: 42%; height: 9%; color: #f2ecd8; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+
+.card .text {
+  position: absolute;
+  left: 9%; width: 82%;
+  font-size: 9.5px;
+  line-height: 1.25;
+  text-align: center;
+  overflow: hidden;
+  z-index: 2;
+}
+.card.t-minion .text { top: 57%; height: 26%; }
+.card.t-spell .text,
+.card.t-weapon .text { top: 62.5%; height: 23%; }
+
+/* etiqueta de clasificación: a qué mazo/expansión pertenece la carta */
+.card .set-tag {
+  position: absolute;
+  bottom: 1.2%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 6.5px;
+  font-weight: bold;
+  letter-spacing: .5px;
+  white-space: nowrap;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: rgba(18, 13, 7, .8);
+  color: #cbb98a;
+  z-index: 2;
+  pointer-events: none;
+}
+.card .set-tag.st-basica { color: #a8c2bb; }
+.card .set-tag.st-mazo { color: #e2c06a; }
+.card .set-tag.st-expansion { color: #b995e8; }
+.card .set-tag.st-ficha { color: #8fa5a0; }
+.card.big .set-tag { font-size: 10px; bottom: 1.4%; padding: 2px 10px; }
+
+/* stats: sobre los círculos pintados del marco de luchador */
+.card .stat {
+  position: absolute;
+  bottom: 4.5%;
+  width: 21%; height: 15%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; font-size: 17px;
+  color: #fff;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, .85);
+  z-index: 2;
+}
+.card .stat.atk { left: 3.5%; }
+.card .stat.hp  { right: 6%; bottom: 4%; }
+
+/* el marco de hechizo no tiene gemas: los artefactos llevan las suyas */
+.card.t-weapon .stat {
+  width: 24%; height: 17%;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, .5);
+  font-size: 15px;
+}
+.card.t-weapon .stat.atk { background: radial-gradient(circle at 35% 30%, #ffd54f, var(--atk-yellow) 60%, #a5680a); }
+.card.t-weapon .stat.dur { right: 3.5%; background: radial-gradient(circle at 35% 30%, #90a4ae, #546e7a 60%, #263238); }
+
+/* mano del jugador (el solapado exacto lo pone renderPlayerHand según nº de cartas) */
+.hand-card { margin: 0 -18px; transform-origin: bottom center; }
+.hand-card.playable {
+  filter: drop-shadow(0 0 9px rgba(110, 245, 110, .95));
+  cursor: grab;
+}
+.hand-card:hover {
+  transform: translateY(-62px) scale(1.32) rotate(0deg) !important;
+  z-index: 50 !important;
+}
+.hand-card.drag-src { opacity: .35; }
+
+.card.ghost {
+  position: absolute;
+  z-index: 400;
+  pointer-events: none;
+  transform: scale(.98) rotate(3deg);
+  opacity: .92;
+}
+
+/* reverso oficial de las cartas (assets/reverso.png) */
+.card-reverse {
+  width: 100%; height: 100%;
+  background: url('../assets/reverso.png') 0 0 / 100% 100% no-repeat;
+  border-radius: 10px;
+}
+
+/* dorso de carta (mano enemiga) */
+.card-back {
+  width: 47px; height: 67px;
+  margin: 0 -6px;
+  border-radius: 5px;
+  background: url('../assets/reverso.png') 0 0 / 100% 100% no-repeat;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, .5);
+}
+
+/* ---------- volteo 3D de cartas (estilo Hearthstone) ---------- */
+.flip3d {
+  perspective: 900px;
+  width: 142px; height: 202px;
+}
+.flip3d.big { width: 280px; height: 398px; }
+.flip-inner {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .45s cubic-bezier(.35, .1, .3, 1);
+}
+.flip-inner.flipped { transform: rotateY(180deg); }
+.flip-front, .flip-back {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-front { transform: rotateY(180deg); }
+
+/* cartas de barajas no compradas: boca abajo, giran al pasar el ratón */
+.col-card.locked:hover .flip-inner { transform: rotateY(180deg); }
+.col-card.locked { cursor: pointer; opacity: 1; }
+.col-card.locked .col-count { color: #d8b45a; }
+
+/* ---------------- CARTA GRANDE (preview / revelado IA) ---------------- */
+
+#preview {
+  position: fixed;
+  right: 26px; top: 50%;
+  transform: translateY(-50%) scale(0);
+  z-index: 600; /* por encima de los overlays: visible también en menús */
+  pointer-events: none;
+  transition: transform .1s ease;
+}
+#preview.show { transform: translateY(-50%) scale(1); }
+
+.card.big { width: 280px; height: 398px; }
+.card.big .cost { font-size: 34px; }
+.card.big .art { font-size: 88px; }
+.card.big .name { font-size: 18px; }
+.card.big .text { font-size: 14.5px; }
+.card.big .stat { font-size: 30px; }
+.card.big.t-weapon .stat { font-size: 25px; }
+.card.big .flavor {
+  position: absolute;
+  left: 12%; width: 76%;
+  font-size: 11px; font-style: italic;
+  text-align: center; color: #6a5432;
+  z-index: 2;
+}
+/* en luchadores el flavor va entre las dos gemas: margen para no pisarlas */
+.card.big.t-minion .flavor { bottom: 3.5%; left: 26%; width: 48%; font-size: 8.5px; }
+.card.big.t-spell .flavor, .card.big.t-weapon .flavor { bottom: 11%; }
+
+.hero-preview .art { font-size: 84px; }
+
+#ai-reveal {
+  position: fixed;
+  left: 50%; top: 40%;
+  transform: translate(-50%, -50%) scale(0);
+  z-index: 420;
+  pointer-events: none;
+  transition: transform .2s ease, opacity .2s ease;
+  opacity: 0;
+  filter: drop-shadow(0 0 26px rgba(255, 210, 87, .55));
+}
+#ai-reveal.show {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  animation: revealPop .25s ease;
+}
+@keyframes revealPop {
+  0% { transform: translate(-50%, -50%) scale(.4) rotate(-6deg); }
+  70% { transform: translate(-50%, -50%) scale(1.08) rotate(1deg); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0); }
+}
+
+/* ---------------- ESBIRROS EN EL TABLERO ---------------- */
+
+.minion {
+  position: relative;
+  width: 116px; height: 165px;
+  flex-shrink: 0;
+  cursor: default;
+  transition: filter .15s;
+}
+/* el arco va por encima de la ilustración */
+.minion::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: url('../assets/monster.png') 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* arte del luchador recortado a la ventana del arco.
+   Hueco real del monster.png (canal alfa): X 14.8%-87.1%, Y 11.4%-78.1%.
+   Arriba la máscara sigue la curva del arco (fuera de él el PNG es
+   transparente); abajo las gemas y la barra opacas tapan las esquinas. */
+.minion .m-art {
+  position: absolute;
+  left: 14.5%; top: 11%;
+  width: 73%; height: 67.5%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 62px;
+  overflow: hidden;
+  border-radius: 50% 50% 4% 4% / 40% 40% 3% 3%;
+  z-index: 0;
+  background: url('../assets/cartas_fondo_basic.jpg') center / cover no-repeat;
+}
+.minion .m-art .art-emoji { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55)); }
+
+.minion.taunt { filter: drop-shadow(0 0 7px rgba(190, 190, 190, .95)); }
+.minion .m-taunt {
+  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+  font-size: 20px;
+  z-index: 2;
+}
+
+/* no puede actuar: en gris y un pelín más pequeño */
+.minion.inactive {
+  filter: grayscale(.85) brightness(.82);
+  transform: scale(.94);
+}
+.minion.inactive.taunt {
+  filter: grayscale(.85) brightness(.82) drop-shadow(0 0 7px rgba(190, 190, 190, .7));
+}
+.minion.inactive.stench {
+  filter: grayscale(.85) brightness(.82) drop-shadow(0 0 8px rgba(140, 220, 90, .6));
+}
+
+/* estado «Olor a Peo» (baraja del Mofeta) */
+.minion.stench { filter: drop-shadow(0 0 8px rgba(140, 220, 90, .85)); }
+.minion .m-stench {
+  position: absolute; top: 0; left: 6px;
+  font-size: 18px;
+  z-index: 2;
+  animation: stenchWave 1.6s ease-in-out infinite;
+}
+@keyframes stenchWave {
+  0%, 100% { transform: translateY(0) rotate(-8deg); opacity: .95; }
+  50% { transform: translateY(-4px) rotate(8deg); opacity: .7; }
+}
+
+.minion.can-attack {
+  filter: drop-shadow(0 0 9px rgba(110, 240, 110, .95));
+  cursor: grab;
+}
+
+/* números sobre las gemas pintadas del marco */
+.minion .stat {
+  position: absolute;
+  top: 60.5%;
+  width: 31%; height: 24%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; font-size: 22px;
+  color: #fff;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, .9), 0 0 4px rgba(0, 0, 0, .5);
+  z-index: 2;
+}
+.minion .stat.atk { left: 8%; }
+.minion .stat.hp  { right: 8%; }
+.minion .stat.hurt { color: #ffb3ab; }
+.minion .stat.buffed { color: #b9f6ca; }
+
+/* aterrizaje: cae desde arriba, se posa con un rebote aplastado
+   (fill backwards: al acabar deja paso al transform de .inactive) */
+.minion.landing { animation: landIn .42s cubic-bezier(.34, .02, .64, 1) backwards; }
+@keyframes landIn {
+  0% { transform: translateY(-130px) scale(1.15); opacity: 0; }
+  12% { opacity: 1; }
+  58% { transform: translateY(0) scale(1); }
+  74% { transform: translateY(0) scale(1.09, .86); }
+  100% { transform: translateY(0) scale(1); }
+}
+.minion.lunge { animation: lunge .3s ease; }
+@keyframes lunge {
+  30% { transform: translateY(-14px) scale(1.12); }
+  100% { transform: none; }
+}
+
+/* objetivo válido resaltado */
+.minion.highlight { filter: drop-shadow(0 0 11px rgba(255, 80, 60, .95)) !important; }
+.portrait.highlight { box-shadow: 0 0 20px 7px rgba(255, 80, 60, .9) !important; }
+
+/* ---------------- HUD SOBRE EL ARTE DEL TABLERO ---------------- */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.hud > * { position: absolute; pointer-events: auto; }
+
+/* retrato: transparente, el arte ya lo pinta; solo brillos e interacción */
+.portrait {
+  border-radius: 50%;
+  transition: box-shadow .15s;
+  overflow: hidden;
+}
+/* ilustración del héroe recortada al círculo claro del marco pintado */
+.portrait .portrait-img {
+  position: absolute;
+  left: 5%; top: 5%;
+  width: 90%; height: 90%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 18%;
+  pointer-events: none;
+}
+.portrait.can-attack {
+  box-shadow: 0 0 18px 6px rgba(120, 230, 120, .9);
+  cursor: grab;
+}
+
+/* número de vida sobre el botón rojo pintado */
+.hp-gem {
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; font-size: 24px;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, .9), 0 0 4px rgba(0, 0, 0, .6);
+  pointer-events: none !important;
+}
+
+/* nombre sobre la placa de pergamino */
+.hero-name {
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  font-weight: bold; font-size: 15px;
+  line-height: 1.15;
+  color: #3a2c14;
+  padding: 4px 10px;
+}
+
+/* poder de héroe: el arte ya pinta el botón; brillo cuando es usable */
+.power {
+  border-radius: 50%;
+  transition: box-shadow .15s, background .15s;
+}
+.power.usable {
+  cursor: pointer;
+  box-shadow: 0 0 18px 5px rgba(255, 210, 87, .85);
+}
+.power.usable:hover { box-shadow: 0 0 24px 8px rgba(255, 230, 120, 1); }
+.power.used { background: rgba(0, 0, 0, .55); }
+
+/* maná sobre las píldoras teal pintadas */
+.mana-zone {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
+  pointer-events: none !important;
+}
+.mana-text { font-size: 15px; font-weight: bold; color: #bfeaff; text-shadow: 0 1px 3px #000; }
+.mana-gems { display: flex; gap: 2px; }
+.gem {
+  width: 9px; height: 9px;
+  border-radius: 3px;
+  transform: rotate(45deg);
+  border: 1px solid #0a2a55;
+}
+.gem.full { background: radial-gradient(circle at 35% 30%, #90caf9, var(--mana) 60%, #0d47a1); box-shadow: 0 0 5px rgba(80, 160, 255, .8); }
+.gem.empty { background: #223; opacity: .55; }
+
+/* contador de baraja */
+.deck-badge {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 30%, #2e6b62, #16403a 65%, #0b211e);
+  border: 3px solid var(--gold-dark);
+  color: var(--gold);
+  font-weight: bold; font-size: 17px;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, .55);
+}
+
+/* arma equipada */
+.weapon {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 40% 30%, #5d4023, #38220f);
+  border: 3px solid var(--gold-dark);
+  border-radius: 50%;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .55);
+}
+.weapon .w-emoji { font-size: 24px; }
+.weapon .w-stats { font-size: 11px; font-weight: bold; color: var(--gold); }
+
+/* --- posiciones: HÉROE ENEMIGO (placa superior) --- */
+#enemy-hud .portrait   { left: 606px; top: 26px;  width: 156px; height: 156px; }
+#enemy-hud .hp-gem     { left: 708px; top: 126px; width: 62px;  height: 58px; }
+#enemy-hud .hero-name  { left: 782px; top: 94px;  width: 234px; height: 74px; }
+#enemy-hud .power      { left: 1032px; top: 68px; width: 104px; height: 104px; }
+#enemy-hud .mana-zone  { left: 1182px; top: 120px; width: 170px; height: 42px; }
+#enemy-hud .deck-badge { left: 1360px; top: 118px; width: 46px; height: 46px; }
+#enemy-hud .weapon     { left: 952px; top: 4px;   width: 66px; height: 66px; }
+
+/* --- posiciones: TU HÉROE (placa inferior izquierda) --- */
+#player-hud .portrait   { left: 202px; top: 707px; width: 154px; height: 154px; }
+#player-hud .hp-gem     { left: 312px; top: 828px; width: 64px;  height: 62px; }
+#player-hud .hero-name  { left: 366px; top: 750px; width: 188px; height: 74px; }
+#player-hud .power      { left: 503px; top: 800px; width: 94px;  height: 94px; }
+#player-hud .mana-zone  { left: 1187px; top: 698px; width: 172px; height: 36px; }
+#player-hud .deck-badge { left: 1520px; top: 786px; width: 46px; height: 46px; }
+#player-hud .weapon     { left: 434px; top: 688px; width: 64px; height: 64px; }
+
+/* ---------------- BOTÓN FIN DE TURNO (sobre la tele pintada) ---------------- */
+
+#end-turn {
+  position: absolute;
+  left: 1490px; top: 418px;
+  width: 144px; height: 70px;
+  background: transparent;
+  border: none;
+  border-radius: 34px;
+  cursor: pointer;
+  z-index: 10;
+  transition: box-shadow .2s, background .2s;
+}
+#end-turn.ready {
+  box-shadow: 0 0 34px 12px rgba(190, 255, 80, .8), inset 0 0 26px rgba(190, 255, 80, .5);
+  animation: endTurnPulse 1.6s ease-in-out infinite;
+}
+#end-turn.ready:hover {
+  box-shadow: 0 0 44px 16px rgba(220, 255, 130, .95), inset 0 0 32px rgba(220, 255, 130, .6);
+  animation: none;
+}
+@keyframes endTurnPulse {
+  0%, 100% { box-shadow: 0 0 34px 12px rgba(190, 255, 80, .8), inset 0 0 26px rgba(190, 255, 80, .5); }
+  50% { box-shadow: 0 0 22px 7px rgba(190, 255, 80, .5), inset 0 0 18px rgba(190, 255, 80, .3); }
+}
+#end-turn:disabled {
+  background: rgba(0, 0, 0, .45);
+  cursor: not-allowed;
+}
+
+/* ---------------- CRÓNICA (panel pintado a la izquierda) ---------------- */
+
+#log-panel {
+  position: absolute;
+  left: 32px; top: 262px;
+  width: 154px; height: 424px;
+  padding: 6px 8px;
+  z-index: 4;
+}
+#log {
+  height: 100%;
+  overflow-y: auto;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #4a3a20;
+}
+#log.hidden { display: none; }
+.log-line { margin-bottom: 3px; border-bottom: 1px dotted rgba(0, 0, 0, .18); padding-bottom: 2px; }
+#log::-webkit-scrollbar { width: 4px; }
+#log::-webkit-scrollbar-thumb { background: #8a6a3a; border-radius: 2px; }
+
+#log-toggle {
+  position: absolute;
+  left: 52px; top: 700px;
+  width: 116px; height: 44px;
+  cursor: pointer;
+  border-radius: 8px;
+  z-index: 4;
+}
+#log-toggle:hover { box-shadow: 0 0 10px rgba(255, 255, 255, .35); }
+
+/* ---------------- FLECHA DE OBJETIVO ---------------- */
+
+#arrow-layer {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh;
+  pointer-events: none;
+  z-index: 350;
+  display: none;
+}
+#arrow-layer.show { display: block; }
+#arrow-line { stroke-width: 6; stroke-dasharray: 12 8; stroke-linecap: round; }
+
+/* ---------------- FX ---------------- */
+
+#fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 380; }
+
+/* partícula emoji genérica (explosiones, subidas, lluvias) */
+.vfx-p {
+  position: fixed;
+  pointer-events: none;
+  z-index: 385;
+  font-size: 24px;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, .4);
+  animation: vfxFly var(--dur, .7s) ease-out forwards;
+}
+@keyframes vfxFly {
+  0% { transform: translate(-50%, -50%) scale(.5) rotate(0deg); opacity: 0; }
+  15% { opacity: 1; }
+  100% {
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px)))
+               scale(var(--sc, 1.4)) rotate(var(--rot, 0deg));
+    opacity: 0;
+  }
+}
+
+/* proyectil (vuela del lanzador al objetivo) */
+.vfx-proj {
+  position: fixed;
+  pointer-events: none;
+  z-index: 386;
+  font-size: 32px;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 2px 5px rgba(0, 0, 0, .5);
+  transition: left .38s cubic-bezier(.4, .1, .7, 1), top .38s cubic-bezier(.4, .1, .7, 1);
+}
+
+/* destello de pantalla para hechizos gordos */
+.vfx-flash {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 375;
+  opacity: 0;
+  animation: flashIn .5s ease-out forwards;
+}
+@keyframes flashIn {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* humito de aterrizaje */
+.dust {
+  position: fixed;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 384;
+  background: radial-gradient(circle, rgba(225, 214, 190, .9) 0%, rgba(190, 178, 155, .5) 55%, rgba(190, 178, 155, 0) 100%);
+  filter: blur(1px);
+  transform: translate(-50%, -50%);
+  animation: dustPuff var(--dur, .6s) ease-out forwards;
+}
+@keyframes dustPuff {
+  0% { transform: translate(-50%, -50%) scale(.5); opacity: .95; }
+  100% {
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(2.4);
+    opacity: 0;
+  }
+}
+
+.splat {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  font-size: 30px; font-weight: bold;
+  padding: 8px 12px;
+  text-shadow: 0 2px 3px #000;
+  animation: splat .9s ease forwards;
+}
+.splat.dmg {
+  color: #fff;
+  background: radial-gradient(circle, #e53935 0%, #b71c1c 70%, transparent 72%);
+  clip-path: polygon(50% 0%, 61% 20%, 83% 12%, 75% 33%, 100% 43%, 78% 55%, 88% 78%, 64% 70%, 50% 100%, 40% 74%, 15% 84%, 26% 60%, 0% 50%, 24% 40%, 12% 15%, 38% 25%);
+  width: 74px; height: 74px;
+  display: flex; align-items: center; justify-content: center;
+}
+.splat.heal { color: #7cff9a; font-size: 34px; }
+
+@keyframes splat {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.4); }
+  18% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -62%) scale(.9); }
+}
+
+/* ---------------- INSPECTOR DE CARTA (falso 3D) ---------------- */
+
+#card-inspector {
+  position: fixed;
+  inset: 0;
+  z-index: 620;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#card-inspector.hidden { display: none; }
+#ci-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 10, 9, .78);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+#ci-holder {
+  position: relative;
+  perspective: 1300px;
+  z-index: 1;
+}
+#ci-card {
+  transition: transform .3s ease;
+  transform-style: preserve-3d;
+  cursor: grab;
+  touch-action: none;
+}
+#ci-card.dragging { transition: none; cursor: grabbing; }
+/* reflejo que sigue al puntero: da vida a foils y doradas */
+#ci-glare {
+  position: absolute;
+  inset: 2%;
+  border-radius: 14px;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 40%), rgba(255, 255, 255, .22), transparent 55%);
+  mix-blend-mode: screen;
+}
+#ci-close {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  z-index: 2;
+  font-size: 16px;
+}
+
+/* ---------------- MODO HISTORIA (bocadillos e intro) ---------------- */
+
+/* capa de fundido al cargar la partida */
+#fade-layer {
+  position: fixed;
+  inset: 0;
+  background: #050b0a;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 470;
+}
+
+/* botón de saltar la intro (dentro del escenario) */
+#intro-skip {
+  position: absolute;
+  left: 50%; top: 10px;
+  transform: translateX(-50%);
+  z-index: 62;
+  font-size: 15px;
+}
+#intro-skip.hidden { display: none; }
+
+/* bocadillo de diálogo (caja box9 + colita hacia el retrato) */
+.speech-bubble {
+  position: absolute;
+  max-width: 480px;
+  padding: 26px 30px;
+  z-index: 55;
+  opacity: 0;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .55));
+}
+/* entrada y salida con rebote, al estilo Hearthstone */
+.speech-bubble.show {
+  animation: bubbleIn .5s cubic-bezier(.34, 1.56, .64, 1) forwards;
+}
+@keyframes bubbleIn {
+  0% { opacity: 0; transform: scale(.25); }
+  55% { opacity: 1; transform: scale(1.1); }
+  75% { transform: scale(.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.speech-bubble.hide {
+  animation: bubbleOut .32s ease-in forwards;
+}
+@keyframes bubbleOut {
+  0% { opacity: 1; transform: scale(1); }
+  30% { transform: scale(1.08); }
+  100% { opacity: 0; transform: scale(.2); }
+}
+.sb-text {
+  font-size: 19px;
+  line-height: 1.45;
+  color: #e9dfc2;
+  text-align: left;
+  position: relative;
+  z-index: 3;
+}
+.sb-text b { color: var(--gold); }
+
+/* bocadillo del RIVAL: bajo su retrato (arriba), cola hacia arriba */
+.sb-rival {
+  left: 620px; top: 210px;
+  transform-origin: 12% 0%;
+}
+.sb-rival .sb-tail {
+  position: absolute;
+  top: -20px; left: 48px;
+  width: 0; height: 0;
+  border: 14px solid transparent;
+  border-bottom: 22px solid #203b35;
+  z-index: 3;
+}
+
+/* bocadillo de TU héroe: sobre su retrato (abajo-izq), cola hacia abajo */
+.sb-yo {
+  left: 220px; bottom: 260px;
+  transform-origin: 12% 100%;
+}
+.sb-yo .sb-tail {
+  position: absolute;
+  bottom: -20px; left: 48px;
+  width: 0; height: 0;
+  border: 14px solid transparent;
+  border-top: 22px solid #203b35;
+  z-index: 3;
+}
+
+/* carta volando desde el mazo a la mano (animación de robo) */
+.fly-card {
+  position: absolute;
+  width: 142px; height: 202px;
+  z-index: 58;
+  pointer-events: none;
+  transform-origin: bottom center; /* igual que las cartas del abanico */
+  transition: left .34s cubic-bezier(.22, .9, .35, 1), top .34s cubic-bezier(.22, .9, .35, 1), transform .34s cubic-bezier(.22, .9, .35, 1);
+  filter: drop-shadow(0 5px 9px rgba(0, 0, 0, .35));
+  will-change: left, top, transform;
+}
+.fly-card .fly-flip { width: 100%; height: 100%; }
+.fly-card .flip-inner { transition: transform .26s ease; }
+.fly-card.enemy-fly {
+  width: 90px; height: 128px;
+  transition: left .28s ease-out, top .28s ease-out, transform .28s ease-out;
+}
+.fly-card.enemy-fly .card-reverse { width: 100%; height: 100%; }
+
+/* ---------------- BOTÓN FLOTANTE DE PAUSA ---------------- */
+
+/* dentro del escenario: escala con el juego en cualquier pantalla */
+#btn-pause {
+  position: absolute;
+  top: 6px; left: 1586px;
+  width: 78px; height: 78px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 3px solid var(--gold-dark);
+  background: radial-gradient(circle at 40% 30%, #2e6b62, #16403a 65%, #0b211e);
+  color: var(--gold);
+  font-size: 34px;
+  cursor: pointer;
+  z-index: 60;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .6);
+  transition: transform .1s, box-shadow .1s;
+}
+#btn-pause:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 16px rgba(255, 210, 87, .7);
+}
+
+.pause-settings { max-width: 340px; margin: 14px auto; }
+
+/* ---------------- BANNER DE TURNO ---------------- */
+
+#turn-banner {
+  position: fixed;
+  left: 50%; top: 42%;
+  transform: translate(-50%, -50%);
+  font-size: 42px; font-weight: bold;
+  color: var(--gold);
+  text-shadow: 0 0 18px rgba(255, 210, 87, .8), 0 3px 6px #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 360;
+}
+#turn-banner.show { animation: bannerIn 1.6s ease forwards; }
+@keyframes bannerIn {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ---------------- OVERLAYS / MENÚS ---------------- */
+
+.overlay {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(14, 36, 32, .94), rgba(3, 9, 8, .98));
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500;
+}
+.overlay.hidden { display: none; }
+
+.menu-box {
+  text-align: center;
+  max-width: 880px;
+  padding: 42px 52px;
+}
+
+.logo {
+  font-size: 62px;
+  color: var(--gold);
+  letter-spacing: 6px;
+  text-shadow: 0 0 24px rgba(255, 180, 60, .55), 0 4px 8px #000;
+}
+.logo.win { color: #8dff9d; text-shadow: 0 0 24px rgba(100, 255, 130, .6), 0 4px 8px #000; }
+.logo.lose { color: #ff6d5a; text-shadow: 0 0 24px rgba(255, 80, 60, .6), 0 4px 8px #000; }
+.logo-sub {
+  font-size: 22px;
+  color: #a8d8cd;
+  letter-spacing: 10px;
+  margin-top: 4px;
+}
+
+.lore {
+  margin: 22px auto;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #d8e8e2;
+  max-width: 640px;
+}
+.lore b { color: var(--gold); }
+
+.deck-picks { display: flex; gap: 20px; justify-content: center; margin: 18px 0 26px; }
+.deck-pick {
+  width: 300px;
+  border-radius: 14px;
+  padding: 16px;
+  border: 3px solid var(--gold-dark);
+  background: rgba(10, 26, 23, .85);
+}
+.sanatorio-pick { border-color: #3b7bd4; box-shadow: 0 0 18px rgba(60, 130, 220, .35); }
+.manonegra-pick { border-color: #a335ee; box-shadow: 0 0 18px rgba(160, 60, 230, .35); }
+.pick-emoji { font-size: 44px; }
+.pick-name { font-weight: bold; font-size: 16px; color: var(--gold); margin: 8px 0; }
+.pick-desc { font-size: 12px; line-height: 1.5; color: #b8d0c8; }
+
+.big-btn {
+  font-family: inherit;
+  font-size: 26px; font-weight: bold;
+  letter-spacing: 3px;
+  padding: 14px 54px;
+  border-radius: 40px;
+  border: 4px solid #8a6a1a;
+  background: linear-gradient(180deg, #ffe082, var(--gold) 50%, #c8961e);
+  color: #4a2f00;
+  cursor: pointer;
+  box-shadow: 0 0 22px rgba(255, 210, 87, .7), 0 5px 12px rgba(0, 0, 0, .6);
+  transition: transform .1s, filter .1s;
+}
+.big-btn:hover { transform: scale(1.05); filter: brightness(1.08); }
+
+.hint { font-size: 12px; color: #7fa89d; margin-top: 18px; font-style: italic; }
+
+/* ---------------- SOBRES (pestaña de la tienda) ---------------- */
+
+/* pestañas Mazos / Sobres */
+/* pestañas MAZOS / SOBRES pintadas en el fondo: zonas clicables */
+#shop-tabs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.shop-tab {
+  position: absolute;
+  pointer-events: auto;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: box-shadow .12s;
+}
+#tab-decks { left: 838px; top: 122px; width: 96px; height: 44px; }
+#tab-packs { left: 934px; top: 122px; width: 104px; height: 44px; }
+.shop-tab:hover { box-shadow: 0 0 12px 3px rgba(255, 220, 120, .6); }
+.shop-tab.active {
+  box-shadow: 0 0 14px 4px rgba(255, 210, 87, .85), inset 0 0 10px rgba(255, 210, 87, .35);
+}
+
+/* panel de sobres sobre la zona de filas de la tienda (marco box_*) */
+#shop-packs-panel {
+  position: absolute;
+  left: 62px; right: 62px;
+  top: 158px; bottom: 34px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px;
+}
+#shop-packs-panel.hidden { display: none; }
+.packs-lore { margin: 0 auto; font-size: 14px; max-width: 720px; }
+#shop-packs-panel .img-btn { width: 420px; height: 88px; font-size: 22px; }
+
+#pack-area {
+  min-height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* el sobre (assets/sobre.png, 586x967) partido en dos por CSS:
+   la rebaba superior (se corta) y el cuerpo */
+.pack2 {
+  position: relative;
+  width: 246px; height: 406px;
+  cursor: pointer;
+  touch-action: none;
+  animation: packFloat 3.2s ease-in-out infinite;
+  transition: transform .5s cubic-bezier(.3, .7, .35, 1);
+  filter: drop-shadow(0 16px 26px rgba(0, 0, 0, .55));
+}
+@keyframes packFloat {
+  0%, 100% { transform: translateY(0) rotate(-1.2deg); }
+  50% { transform: translateY(-13px) rotate(1.2deg); }
+}
+.pack2.dimmed {
+  filter: grayscale(.7) brightness(.6);
+  cursor: default;
+  animation: none;
+}
+/* comprado: se acerca a la cámara para el corte */
+.pack2.zoomed {
+  animation: none;
+  transform: scale(1.6);
+  cursor: default;
+  z-index: 5;
+}
+
+/* la rebaba (franja troquelada superior de la imagen) */
+.pack2 .sobre-strip {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 37px;
+  background: url('../assets/sobre.png') no-repeat top center / 100% auto;
+  z-index: 2;
+  transform-origin: 8% 100%;
+  transition: transform .55s ease, opacity .55s ease;
+}
+.pack2 .sobre-strip.torn {
+  transform: translate(34px, -74px) rotate(16deg);
+  opacity: 0;
+}
+/* el cuerpo: el resto de la imagen, recortada bajo la línea de corte */
+.pack2 .sobre-body {
+  position: absolute;
+  left: 0; right: 0; top: 37px; bottom: 0;
+  background: url('../assets/sobre.png') no-repeat center / 100% auto;
+  background-position: 0 -37px;
+}
+
+/* línea de corte brillante (pulso + onda que la recorre) */
+.cut-glow {
+  position: absolute;
+  left: -7%; right: -7%; top: 37px;
+  height: 4px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, #ffe387 14%, #fff 50%, #ffe387 86%, transparent);
+  border-radius: 3px;
+  z-index: 3;
+  pointer-events: none;
+  overflow: visible;
+  animation: cutPulse 1.1s ease-in-out infinite;
+}
+@keyframes cutPulse {
+  0%, 100% { opacity: .55; box-shadow: 0 0 10px 2px rgba(255, 220, 110, .5); }
+  50% { opacity: 1; box-shadow: 0 0 22px 6px rgba(255, 220, 110, .95); }
+}
+.cut-glow::after {
+  content: '';
+  position: absolute;
+  top: -4px; bottom: -4px;
+  width: 48px;
+  background: radial-gradient(ellipse, rgba(255, 255, 255, .95), transparent 70%);
+  animation: cutWave 1.5s linear infinite;
+}
+@keyframes cutWave {
+  from { left: -12%; }
+  to { left: 106%; }
+}
+/* tramo ya cortado: al rojo vivo */
+.cut-done {
+  position: absolute;
+  left: 0; top: 37px;
+  height: 6px; width: 0;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, #fff, #ffd257);
+  border-radius: 3px;
+  box-shadow: 0 0 18px 5px rgba(255, 235, 150, .95);
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* durante el corte, los textos del panel desaparecen */
+#shop-packs-panel .packs-lore, #shop-packs-panel #pack-info {
+  transition: opacity .4s;
+}
+#shop-packs-panel.cutting .packs-lore,
+#shop-packs-panel.cutting #pack-info { opacity: 0; }
+
+/* revelado: las 5 cartas boca abajo */
+.pack-reveal {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+}
+.pack-card {
+  position: relative;
+  animation: dealIn .45s cubic-bezier(.3, 1.2, .5, 1) backwards;
+  animation-delay: calc(var(--i) * .09s);
+  cursor: pointer;
+}
+@keyframes dealIn {
+  from { transform: translateY(60px) scale(.4); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.pack-card .flip3d:hover { transform: translateY(-6px); transition: transform .12s; }
+.pack-tag {
+  position: absolute;
+  left: 0; right: 0; bottom: -26px;
+  text-align: center;
+  font-size: 11px; font-weight: bold;
+  white-space: nowrap;
+}
+.tag-new { color: #8dff9d; text-shadow: 0 0 8px rgba(120, 255, 130, .7); }
+.tag-variant.tv-brillante { color: #fff; text-shadow: 0 0 8px #fff; }
+.tag-variant.tv-dorada { color: var(--gold); text-shadow: 0 0 8px rgba(255, 210, 87, .9); }
+.tag-variant.tv-alterada { color: #b980ff; text-shadow: 0 0 8px rgba(160, 80, 255, .9); }
+.tag-variant.tv-foil {
+  background: linear-gradient(90deg, #ff6ec7, #ffd257, #6ef3ff, #b980ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- versiones especiales de cartas ---------- */
+
+/* ✨ brillante: destellos que titilan */
+.card.v-brillante::before, .minion.v-brillante .m-art::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    radial-gradient(circle at 22% 28%, rgba(255,255,255,.9) 0 2px, transparent 4px),
+    radial-gradient(circle at 74% 18%, rgba(255,255,255,.8) 0 2px, transparent 4px),
+    radial-gradient(circle at 60% 62%, rgba(255,255,255,.8) 0 2px, transparent 4px),
+    radial-gradient(circle at 34% 78%, rgba(255,255,255,.7) 0 2px, transparent 4px);
+  animation: twinkle 1.8s ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  from { opacity: .25; }
+  to { opacity: .95; }
+}
+
+/* 🏆 dorada: marcos GOLD dibujados (versión _gold de cada fondo) */
+.card.v-dorada { filter: drop-shadow(0 0 8px rgba(255, 200, 60, .95)); }
+.card.v-dorada::after { background-image: url('../assets/cards_spell_gold.png'); }
+.card.v-dorada.t-minion::after { background-image: url('../assets/card_back_gold.png'); }
+/* en el tablero no hay arco dorado: baño de oro en el arte + aura */
+.minion.v-dorada .m-art img, .minion.v-dorada .m-art .art-emoji {
+  filter: sepia(.55) saturate(1.6) hue-rotate(-12deg) brightness(1.08);
+}
+.minion.v-dorada { filter: drop-shadow(0 0 8px rgba(255, 200, 60, .9)); }
+
+/* reverso dorado (dorsos de cartas GOLD en el revelado de sobres) */
+.card-reverse.gold {
+  background-image: url('../assets/reverso_gold.png');
+  filter: drop-shadow(0 0 10px rgba(255, 200, 60, .8));
+}
+
+/* 🌀 alterada: la ilustración cambia de mundo */
+.card.v-alterada .art-img, .card.v-alterada .art-emoji,
+.minion.v-alterada .m-art img, .minion.v-alterada .m-art .art-emoji {
+  filter: hue-rotate(160deg) saturate(1.6) contrast(1.15);
+}
+.card.v-alterada { filter: drop-shadow(0 0 7px rgba(160, 80, 255, .8)); }
+.minion.v-alterada { filter: drop-shadow(0 0 7px rgba(160, 80, 255, .8)); }
+
+/* 🌈 foil: reflejo arcoíris en movimiento */
+.card.v-foil::before, .minion.v-foil .m-art::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(115deg,
+    transparent 18%,
+    rgba(255, 110, 199, .30) 32%,
+    rgba(110, 243, 255, .30) 46%,
+    rgba(255, 235, 110, .30) 60%,
+    rgba(185, 128, 255, .30) 72%,
+    transparent 86%);
+  background-size: 300% 300%;
+  animation: foilSweep 2.6s linear infinite;
+  mix-blend-mode: screen;
+}
+@keyframes foilSweep {
+  0% { background-position: 120% 0; }
+  100% { background-position: -80% 0; }
+}
+.card.v-foil { filter: drop-shadow(0 0 8px rgba(185, 128, 255, .85)); }
+.minion.v-foil { filter: drop-shadow(0 0 8px rgba(185, 128, 255, .85)); }
+
+/* ---------------- PANTALLA ONLINE ---------------- */
+
+.online-box {
+  margin: 16px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* chips de IP copiables */
+.ip-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  min-height: 0;
+}
+.ip-label { width: 100%; font-size: 13px; color: #9fc8bc; }
+.ip-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 22px;
+  background: rgba(10, 26, 23, .9);
+  border: 2px solid var(--gold-dark);
+}
+.ip-chip code {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+.ip-copy {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 14px;
+  border: 2px solid #56766e;
+  background: #1d453e;
+  color: #cfe8e0;
+  cursor: pointer;
+  transition: filter .1s;
+}
+.ip-copy:hover { filter: brightness(1.25); }
+.ip-copy.copied { border-color: #3f7a4a; background: #1d4a28; color: #8dff9d; }
+.online-box .hint { margin-top: 4px; max-width: 560px; min-height: 18px; }
+.join-row { display: flex; gap: 10px; align-items: center; }
+#join-ip {
+  width: 300px;
+  padding: 13px 16px;
+  font-family: inherit;
+  font-size: 17px;
+  border-radius: 12px;
+  border: 2px solid var(--gold-dark);
+  background: rgba(10, 26, 23, .9);
+  color: var(--parchment);
+  outline: none;
+}
+#join-ip:focus { border-color: var(--gold); box-shadow: 0 0 10px rgba(255, 210, 87, .4); }
+.img-btn.join-btn { width: 240px; height: 62px; font-size: 20px; }
+#btn-online-back { margin-top: 10px; }
+.img-btn:disabled { filter: grayscale(.8) brightness(.7); cursor: not-allowed; }
+
+/* ---------------- CONTENEDOR MODULAR (piezas box_* de assets) ----------------
+   Caja de tamaño libre: fondo verde grisáceo OPACO + bordes con
+   box_up/down/left/right y esquinas con box_corner (rotada).
+   Uso: llamar box9(elemento) — sirve para desplegables, paneles,
+   cuadros de texto y los futuros bocadillos del modo historia. */
+
+.box9 {
+  position: relative;
+  z-index: 0;
+}
+/* el fondo verde va RETRANQUEADO para no asomar por las esquinas
+   biseladas de las piezas del marco */
+.box9::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  background: #203b35;
+  border-radius: 16px;
+  z-index: -1;
+}
+/* los bocadillos siguen siendo absolutos aunque lleven el marco */
+.box9.speech-bubble { position: absolute; }
+.box9 > .b9 {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+}
+.b9-t { top: -3px; left: 26px; right: 26px; height: 26px; background: url('../assets/box_up.png') repeat-x; background-size: auto 100%; }
+.b9-b { bottom: -3px; left: 26px; right: 26px; height: 26px; background: url('../assets/box_down.png') repeat-x; background-size: auto 100%; }
+.b9-l { left: -3px; top: 24px; bottom: 24px; width: 23px; background: url('../assets/box_left.png') repeat-y; background-size: 100% auto; }
+.b9-r { right: -3px; top: 24px; bottom: 24px; width: 23px; background: url('../assets/box_right.png') repeat-y; background-size: 100% auto; }
+/* la esquina original es la inferior derecha: se voltea para las demás */
+.b9-br, .b9-bl, .b9-tr, .b9-tl {
+  width: 34px; height: 36px;
+  background: url('../assets/box_corner.png') 0 0 / 100% 100% no-repeat;
+}
+.b9-br { right: -3px; bottom: -3px; }
+.b9-bl { left: -3px; bottom: -3px; transform: scaleX(-1); }
+.b9-tr { right: -3px; top: -3px; transform: scaleY(-1); }
+.b9-tl { left: -3px; top: -3px; transform: scale(-1, -1); }
+
+/* ---------------- MENÚ PRINCIPAL ---------------- */
+
+/* escenario del menú: 1920x1080 escalado para CUBRIR la ventana */
+#main-menu { overflow: hidden; padding: 0; }
+#menu-stage {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1920px; height: 1080px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  background: url('../assets/fondo_menu.jpg') 0 0 / 100% 100% no-repeat;
+}
+
+/* botones sobre el panel acolchado central */
+.menu-buttons-panel {
+  position: absolute;
+  left: 50%; top: 385px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* botón con arte: placa metálica (stand) que se ilumina en dorado (select).
+   Ambas imágenes van apiladas para que el cambio al hacer hover sea instantáneo. */
+.img-btn {
+  width: 450px; height: 95px;
+  border: none;
+  background-color: transparent;
+  background-image: url('../assets/boton_menu_select.png'), url('../assets/boton_menu_stand.png');
+  background-repeat: no-repeat, no-repeat;
+  background-size: 0 0, 100% 100%;
+  font-family: inherit;
+  font-size: 25px; font-weight: bold;
+  letter-spacing: 1px;
+  color: #3a2c14;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .4);
+  cursor: pointer;
+  transition: transform .08s ease;
+}
+.img-btn:hover {
+  background-size: 100% 100%, 0 0;
+  transform: scale(1.035);
+  color: #4a3000;
+}
+.img-btn:active { transform: scale(.98); }
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.coins-badge {
+  display: inline-block;
+  margin: 10px auto 0;
+  padding: 7px 22px;
+  border-radius: 22px;
+  background: rgba(10, 26, 23, .85);
+  border: 2px solid var(--gold-dark);
+  color: var(--gold);
+  font-weight: bold;
+  font-size: 17px;
+}
+
+/* ---------------- GESTOR DE MAZOS (sobre fondo_mazos.jpg) ---------------- */
+
+#deck-screen { overflow: hidden; padding: 0; }
+#deck-stage {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1540px; height: 1021px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  background: url('../assets/fondo_mazos.jpg') 0 0 / 100% 100% no-repeat;
+}
+
+/* título en la placa de pergamino: es el DESPLEGABLE de mazos */
+#deck-title {
+  position: absolute;
+  left: 185px; top: 60px;
+  width: 430px; height: 58px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px;
+  font-size: 21px; font-weight: bold;
+  color: #3a2c14;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: box-shadow .12s;
+}
+#deck-title:hover {
+  box-shadow: 0 0 16px 4px rgba(255, 220, 120, .7), inset 0 0 12px rgba(255, 220, 120, .3);
+}
+#deck-title .dt-caret { font-size: 17px; color: #7a5a34; }
+
+/* desplegable de mazos (marco modular box_*) */
+#deck-dropdown {
+  position: absolute;
+  left: 185px; top: 122px;
+  width: 440px;
+  padding: 24px 22px;
+  z-index: 8;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .65);
+}
+#deck-dropdown.hidden { display: none; }
+.dd-scroll {
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.dd-scroll::-webkit-scrollbar { width: 6px; }
+.dd-scroll::-webkit-scrollbar-thumb { background: #3f6a60; border-radius: 3px; }
+
+.dd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: #e5ddc5;
+  font-size: 15px;
+  transition: background .1s;
+}
+.dd-row:hover { background: rgba(255, 220, 120, .13); }
+.dd-row.active {
+  border-color: var(--gold);
+  background: rgba(255, 210, 87, .1);
+}
+.dd-hero { font-size: 21px; }
+.dd-name { flex: 1; text-align: left; font-weight: bold; }
+.dd-tag { font-size: 10.5px; letter-spacing: 1px; color: #8fb5ab; }
+.dd-del { opacity: .65; transition: transform .1s, opacity .1s; }
+.dd-del:hover { opacity: 1; transform: scale(1.25); }
+
+.dd-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 10px 4px 4px;
+  margin-top: 6px;
+  border-top: 1px solid rgba(184, 134, 11, .35);
+}
+
+/* héroe del mazo en el ojo de buey */
+#deck-hero-window {
+  position: absolute;
+  left: 695px; top: 45px;
+  width: 71px; height: 71px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px;
+  background: url('../assets/cartas_fondo_basic.jpg') center / cover no-repeat;
+  cursor: pointer;
+  transition: box-shadow .12s;
+}
+#deck-hero-window:hover {
+  box-shadow: 0 0 16px 5px rgba(255, 220, 120, .8), inset 0 0 10px rgba(255, 220, 120, .4);
+}
+#deck-hero-window img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 50% 18%;
+}
+
+/* contador 30/30 en la píldora verde */
+#deck-count {
+  position: absolute;
+  left: 862px; top: 62px;
+  width: 112px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 21px; font-weight: bold;
+  color: #8dff9d;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
+}
+#deck-count.bad { color: #ff8a80; }
+
+/* botones pintados en el fondo: zonas clicables con brillo */
+.painted-btn {
+  position: absolute;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: box-shadow .12s ease, background .12s ease;
+}
+.painted-btn:hover:not(:disabled) {
+  box-shadow: 0 0 16px 4px rgba(255, 220, 120, .75), inset 0 0 12px rgba(255, 220, 120, .35);
+}
+.painted-btn:active:not(:disabled) { box-shadow: 0 0 8px 2px rgba(255, 220, 120, .6); }
+.painted-btn:disabled {
+  background: rgba(0, 0, 0, .4);
+  cursor: not-allowed;
+}
+.painted-btn.flash-ok {
+  animation: flashOk 1.1s ease;
+}
+@keyframes flashOk {
+  0%, 100% { box-shadow: none; }
+  25% { box-shadow: 0 0 22px 7px rgba(120, 255, 130, .9), inset 0 0 16px rgba(120, 255, 130, .5); }
+  70% { box-shadow: 0 0 14px 4px rgba(120, 255, 130, .6); }
+}
+
+#btn-hero-cycle { left: 787px; top: 58px; width: 56px; height: 58px; }
+#btn-deck-auto  { left: 993px; top: 58px; width: 170px; height: 56px; }
+#btn-deck-save  { left: 1181px; top: 58px; width: 132px; height: 56px; }
+#btn-deck-back  { left: 1341px; top: 58px; width: 104px; height: 56px; }
+
+/* colección sobre el panel acolchado */
+#deck-stage .collection-grid {
+  position: absolute;
+  left: 85px; top: 165px;
+  width: 995px; height: 775px;
+}
+
+/* lista del mazo sobre el panel verde */
+#deck-stage .deck-list {
+  position: absolute;
+  left: 1152px; top: 240px;
+  width: 292px; height: 608px;
+  border-left: none;
+  padding: 6px 8px;
+}
+
+/* pastilla informativa inferior */
+#collection-info {
+  position: absolute;
+  left: 480px; top: 958px;
+  width: 192px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  color: #bfe8dc;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+}
+
+/* ---------------- TIENDA (sobre fondo_tienda.png) ---------------- */
+
+#shop-screen { overflow: hidden; padding: 0; }
+#shop-stage {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1540px; height: 1021px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+}
+
+/* capas: arte de mazos (0) < marco pintado (1) < textos y botones (2) */
+#shop-art { position: absolute; inset: 0; z-index: 0; }
+#shop-frame {
+  position: absolute; inset: 0;
+  background: url('../assets/fondo_tienda.png') 0 0 / 100% 100% no-repeat;
+  z-index: 1;
+  pointer-events: none;
+}
+#shop-ui { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+#shop-ui > * { pointer-events: auto; }
+
+/* arte del mazo asomando por el hueco recortado (270x199) */
+.shop-slot-art {
+  position: absolute;
+  left: 145px;
+  width: 270px; height: 199px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: url('../assets/cartas_fondo_basic.jpg') center / cover no-repeat;
+  display: flex; align-items: center; justify-content: center;
+}
+.shop-slot-art img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 50% 20%;
+}
+.shop-slot-art .slot-emoji { font-size: 92px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
+.shop-slot-art.owned img { filter: grayscale(.55) brightness(.8); }
+
+/* textos sobre el pergamino de cada fila */
+.shop-slot-text {
+  position: absolute;
+  left: 458px;
+  width: 660px; height: 200px;
+  padding-top: 20px;
+  pointer-events: none !important;
+  text-align: left;
+}
+.ss-name { font-size: 23px; font-weight: bold; color: #3a2c14; }
+.ss-cards { font-size: 14px; font-weight: normal; font-style: italic; color: #7a5a34; }
+.ss-desc { font-size: 14.5px; line-height: 1.5; color: #54432a; margin-top: 10px; max-width: 640px; }
+
+/* botón de compra sobre la placa verde pintada (la pastilla ya está pintada) */
+.shop-buy {
+  position: absolute;
+  left: 1147px;
+  width: 218px; height: 82px;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 30px;
+  font-family: inherit;
+  font-size: 27px; font-weight: bold;
+  color: var(--gold);
+  text-shadow: 0 2px 3px rgba(0, 0, 0, .8);
+}
+.shop-buy.owned { font-size: 15px; letter-spacing: 1px; color: #8dff9d; }
+
+/* contador de pastillas en la placa superior (la pastilla ya está pintada) */
+#shop-coins {
+  position: absolute;
+  left: 1108px; top: 62px;
+  width: 112px; height: 56px;
+  display: flex; align-items: center; justify-content: flex-start;
+  font-size: 23px; font-weight: bold;
+  color: var(--gold);
+  text-shadow: 0 2px 3px rgba(0, 0, 0, .8);
+  z-index: 2;
+}
+
+/* volver pintado */
+#btn-shop-back { left: 1272px; top: 58px; width: 178px; height: 66px; z-index: 2; }
+
+/* paginación (de 3 en 3): flechas de carrusel en los laterales */
+#shop-pager {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.pager-btn {
+  position: absolute;
+  top: 480px;
+  width: 58px; height: 58px;
+  pointer-events: auto;
+  border-radius: 50%;
+  border: 3px solid var(--gold-dark);
+  background: radial-gradient(circle at 40% 30%, #2e6b62, #16403a 65%, #0b211e);
+  color: var(--gold);
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .6);
+  transition: transform .1s, box-shadow .1s;
+}
+#shop-prev { left: 8px; }
+#shop-next { right: 8px; }
+.pager-btn:hover:not(:disabled) {
+  transform: scale(1.12);
+  box-shadow: 0 0 16px rgba(255, 210, 87, .7);
+}
+.pager-btn:disabled { opacity: .3; cursor: default; }
+#shop-page {
+  position: absolute;
+  left: 8px; top: 546px;
+  width: 58px;
+  text-align: center;
+  pointer-events: none;
+  font-size: 15px; font-weight: bold;
+  color: var(--gold);
+  text-shadow: 0 2px 3px rgba(0, 0, 0, .8);
+  background: rgba(9, 28, 25, .85);
+  border: 2px solid var(--gold-dark);
+  border-radius: 12px;
+  padding: 3px 0;
+}
+
+/* etiqueta de versión (esquina del menú, para saber qué build corre) */
+.version-tag {
+  position: absolute;
+  right: 18px; bottom: 12px;
+  font-size: 15px;
+  color: #7fa89d;
+  text-shadow: 0 1px 2px #000;
+  font-style: italic;
+}
+
+/* ---------------- PANELES (genéricos) ---------------- */
+
+.panel {
+  width: min(1240px, 94vw);
+  height: min(820px, 92vh);
+  background: linear-gradient(170deg, #14332e 0%, #0d221e 100%);
+  border: 3px solid var(--gold-dark);
+  border-radius: 18px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, .7);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+}
+.panel.narrow { width: min(760px, 94vw); height: auto; max-height: 92vh; }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(184, 134, 11, .4);
+}
+.panel-header h2 { color: var(--gold); font-size: 24px; letter-spacing: 1px; flex: 1; text-align: left; }
+.panel-actions { display: flex; gap: 10px; }
+
+.deck-count-big {
+  font-size: 22px; font-weight: bold;
+  color: #8dff9d;
+  padding: 4px 14px;
+  border: 2px solid #3f7a4a;
+  border-radius: 14px;
+}
+
+/* selector de héroe en el gestor de mazos */
+#hero-select { display: flex; gap: 8px; }
+.hero-pick {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  font-size: 26px;
+  background: radial-gradient(circle at 40% 30%, #2e6b62, #16403a 65%, #0b211e);
+  border: 3px solid #56766e;
+  cursor: pointer;
+  transition: transform .1s, box-shadow .1s;
+}
+.hero-pick:hover:not(.locked) { transform: scale(1.1); }
+.hero-pick.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 14px rgba(255, 210, 87, .8);
+}
+.hero-pick.locked { opacity: .45; cursor: not-allowed; }
+.deck-count-big.bad { color: #ff8a80; border-color: #8a3a34; }
+
+/* botón pequeño genérico: usa la placa boton_small.png */
+.small-btn {
+  font-family: inherit;
+  font-size: 14px; font-weight: bold;
+  padding: 12px 24px;
+  border: none;
+  background: url('../assets/boton_small.png') 0 0 / 100% 100% no-repeat;
+  color: #d8e8e2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+  cursor: pointer;
+  transition: filter .1s, transform .1s;
+}
+.small-btn:hover:not(:disabled) {
+  filter: brightness(1.35) drop-shadow(0 0 6px rgba(255, 220, 120, .55));
+  transform: scale(1.04);
+}
+.small-btn:disabled { filter: grayscale(.7) brightness(.65); cursor: not-allowed; }
+.small-btn.gold {
+  color: var(--gold);
+  filter: drop-shadow(0 0 6px rgba(255, 210, 87, .45));
+}
+.small-btn.danger { color: #ff9d92; }
+
+.panel-body {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  min-height: 0;
+  padding-top: 12px;
+}
+
+/* colección (rejilla de cartas) */
+.collection-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 150px);
+  justify-content: center;
+  align-content: start;
+  gap: 14px 8px;
+  overflow-y: auto;
+  padding: 8px 4px 20px;
+}
+.collection-grid::-webkit-scrollbar { width: 8px; }
+.collection-grid::-webkit-scrollbar-thumb { background: #3f6a60; border-radius: 4px; }
+
+.col-card { position: relative; cursor: pointer; width: 142px; }
+.col-card .card { transition: transform .1s; }
+.col-card:hover .card { transform: translateY(-6px) scale(1.04); }
+.col-card.maxed { opacity: .38; cursor: default; }
+.col-card.maxed:hover .card { transform: none; }
+.col-count {
+  text-align: center;
+  font-size: 11px;
+  color: #9fc8bc;
+  margin-top: 6px;
+}
+
+/* lista del mazo (columna derecha) */
+.deck-list {
+  width: 300px;
+  overflow-y: auto;
+  border-left: 2px solid rgba(184, 134, 11, .35);
+  padding: 4px 0 4px 14px;
+}
+.deck-list::-webkit-scrollbar { width: 8px; }
+.deck-list::-webkit-scrollbar-thumb { background: #3f6a60; border-radius: 4px; }
+
+.deck-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  margin-bottom: 5px;
+  border-radius: 8px;
+  background: rgba(30, 60, 54, .8);
+  border-left: 4px solid #8a8a8a;
+  cursor: pointer;
+  transition: filter .1s;
+}
+.deck-row:hover { filter: brightness(1.25); }
+.deck-row.r-rara { border-left-color: #3b7bd4; }
+.deck-row.r-épica { border-left-color: #a335ee; }
+.deck-row.r-legendaria { border-left-color: #ff8000; }
+.dr-cost {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #64b5f6, var(--mana) 60%, #0d47a1);
+  color: #fff; font-weight: bold; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.dr-name { flex: 1; font-size: 13px; font-weight: bold; color: #ece2c8; text-align: left; }
+.dr-n { font-size: 13px; color: var(--gold); font-weight: bold; }
+
+/* tienda */
+.shop-grid { display: flex; flex-direction: column; gap: 14px; padding: 18px 6px; overflow-y: auto; }
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(30, 60, 54, .8);
+  border: 2px solid #56766e;
+}
+.shop-item.owned { opacity: .6; }
+.si-emoji { font-size: 42px; }
+.si-info { flex: 1; text-align: left; }
+.si-name { font-size: 17px; font-weight: bold; color: var(--gold); }
+.si-desc { font-size: 12.5px; color: #b8d0c8; line-height: 1.45; margin: 4px 0; }
+.si-cards { font-size: 11px; color: #7fa89d; font-style: italic; }
+.shop-item .small-btn { min-width: 120px; }
+
+/* ajustes */
+.settings-list { margin: 20px auto; max-width: 380px; }
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 6px;
+  font-size: 18px;
+  border-bottom: 1px solid rgba(184, 134, 11, .25);
+}
+.toggle {
+  font-family: inherit;
+  width: 70px;
+  padding: 6px 0;
+  font-size: 15px; font-weight: bold;
+  border-radius: 16px;
+  border: 2px solid #8a3a34;
+  background: #4a1d1d;
+  color: #ffb3ab;
+  cursor: pointer;
+}
+.toggle.on {
+  border-color: #3f7a4a;
+  background: #1d4a28;
+  color: #8dff9d;
+}
