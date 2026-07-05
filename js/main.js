@@ -3,7 +3,25 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSave();
-  showScreen('main-menu');
+  /* sin ficha de paciente: primero el registro */
+  showScreen(Save.profile ? 'main-menu' : 'register-screen');
+
+  /* registro de la ficha de ingreso */
+  const doRegister = () => {
+    const name = document.getElementById('reg-name').value.trim();
+    if (name.length < 2) {
+      document.getElementById('reg-hint').textContent =
+        'El Director necesita un nombre de al menos 2 letras.';
+      return;
+    }
+    const p = registerUser(name);
+    showScreen('main-menu');
+    banner(`🏥 Ingreso completado: ${p.name} · paciente ${p.id}`);
+  };
+  document.getElementById('btn-register').addEventListener('click', doRegister);
+  document.getElementById('reg-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doRegister();
+  });
 
   /* menú principal */
   document.getElementById('btn-play').addEventListener('click', () => {
@@ -42,6 +60,24 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('set-fast').addEventListener('click', () => toggleSetting('fastAI'));
   document.getElementById('set-log').addEventListener('click', () => toggleSetting('showLog'));
   document.getElementById('btn-reset-save').addEventListener('click', resetSave);
+
+  /* código de progreso: llevar la ficha a otro dispositivo */
+  document.getElementById('btn-export-save').addEventListener('click', () => {
+    const code = exportProgressCode();
+    const done = () => banner('📋 Código copiado: pégalo en «Cargar código» en el otro dispositivo');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(done, () => prompt('Copia tu código de progreso:', code));
+    } else {
+      prompt('Copia tu código de progreso:', code);
+    }
+  });
+  document.getElementById('btn-import-save').addEventListener('click', () => {
+    const code = prompt('Pega aquí el código de progreso del otro dispositivo:');
+    if (code === null || !code.trim()) return;
+    if (!confirm('Esto SUSTITUYE el progreso de este dispositivo por el del código. ¿Continuar?')) return;
+    if (importProgressCode(code)) location.reload();
+    else banner('❌ Ese código no es válido');
+  });
 
   /* sobres (pestaña dentro de la tienda; el propio sobre es el botón) */
   document.getElementById('tab-decks').addEventListener('click', () => shopShowTab('decks'));

@@ -1464,6 +1464,32 @@ body {
   font-size: 17px;
 }
 
+/* ficha del paciente bajo las pastillas del menú */
+.profile-badge {
+  margin: 8px auto 0;
+  font-size: 13px;
+  color: #cfe3db;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, .8);
+  letter-spacing: .5px;
+}
+
+/* registro: la ficha de ingreso */
+.register-row { justify-content: center; margin-top: 6px; }
+#reg-name {
+  width: 320px;
+  padding: 13px 16px;
+  font-family: inherit;
+  font-size: 17px;
+  border-radius: 12px;
+  border: 2px solid var(--gold-dark);
+  background: rgba(10, 26, 23, .9);
+  color: var(--parchment);
+  outline: none;
+}
+#reg-name:focus { border-color: var(--gold); box-shadow: 0 0 10px rgba(255, 210, 87, .4); }
+#reg-hint { min-height: 18px; color: #e8b06a; }
+#settings-profile { margin-top: 14px; font-style: normal; color: #cfe3db; }
+
 /* ---------------- GESTOR DE MAZOS (sobre fondo_mazos.jpg) ---------------- */
 
 #deck-screen { overflow: hidden; padding: 0; }

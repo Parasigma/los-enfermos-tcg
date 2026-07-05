@@ -14,6 +14,7 @@
 const SAVE_KEY = 'enfermos_tcg_save_v1';
 
 const Save = {
+  profile: null,                // { name, id, created } — ficha de ingreso del paciente
   coins: 150,
   ownedSets: ['sanatorio'],
   customDecks: [],              // [{id, name, hero, cards[], archetype:false}]
@@ -116,6 +117,9 @@ function loadSave() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (raw) {
       const s = JSON.parse(raw);
+      if (s.profile && typeof s.profile.id === 'string' && typeof s.profile.name === 'string') {
+        Save.profile = s.profile;
+      }
       if (typeof s.coins === 'number') Save.coins = s.coins;
       if (Array.isArray(s.ownedSets)) Save.ownedSets = s.ownedSets;
       if (Array.isArray(s.customDecks)) Save.customDecks = s.customDecks;
@@ -155,6 +159,47 @@ function loadSave() {
     persistSave();
   }
   applySettings();
+}
+
+/* ---------- perfil: ficha de ingreso del paciente ----------
+   La primera vez se registra un nombre y el juego asigna un ID
+   permanente (ENF-XXXX-XXXX). El progreso vive ligado a esa ficha
+   y puede llevarse a otro dispositivo con el código de progreso. */
+
+function makeUserId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin 0/O ni 1/I: se dictan sin errores
+  const bytes = new Uint8Array(8);
+  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+  else for (let i = 0; i < 8; i++) bytes[i] = Math.floor(Math.random() * 256);
+  let s = '';
+  for (let i = 0; i < 8; i++) s += chars[bytes[i] % chars.length];
+  return 'ENF-' + s.slice(0, 4) + '-' + s.slice(4);
+}
+
+function registerUser(name) {
+  Save.profile = {
+    name: name.trim().slice(0, 16),
+    id: makeUserId(),
+    created: typeof todayStr === 'function' ? todayStr() : ''
+  };
+  persistSave();
+  return Save.profile;
+}
+
+/* código de progreso: todo el guardado en base64 para copiarlo
+   y pegarlo en otro dispositivo (misma ficha, mismo ID) */
+function exportProgressCode() {
+  return btoa(unescape(encodeURIComponent(JSON.stringify(Save))));
+}
+
+function importProgressCode(code) {
+  try {
+    const s = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+    if (!s || typeof s !== 'object' || typeof s.coins !== 'number' ||
+        !s.profile || typeof s.profile.id !== 'string') return false;
+    localStorage.setItem(SAVE_KEY, JSON.stringify(s));
+    return true;
+  } catch (e) { return false; }
 }
 
 function maxCopies(id) { return CARDS[id].rarity === 'legendaria' ? 1 : 2; }
@@ -208,13 +253,18 @@ function applySettings() {
 
 /* ---------- navegación entre pantallas ---------- */
 
-const SCREENS = ['main-menu', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'end-overlay'];
+const SCREENS = ['register-screen', 'main-menu', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'end-overlay'];
 
 function showScreen(id) {
   for (const s of SCREENS) {
     document.getElementById(s).classList.toggle('hidden', s !== id);
   }
-  if (id === 'main-menu') document.getElementById('menu-coins').textContent = Save.coins;
+  if (id === 'main-menu') {
+    document.getElementById('menu-coins').textContent = Save.coins;
+    const pb = document.getElementById('menu-profile');
+    if (pb) pb.textContent = Save.profile
+      ? `🧑‍⚕️ ${Save.profile.name} · ${Save.profile.id}` : '';
+  }
   if (id === 'shop-screen') {
     renderShop();
     if (typeof shopShowTab === 'function') shopShowTab('decks');
@@ -647,6 +697,10 @@ function renderSettings() {
   setTog('set-sound', Save.settings.sound);
   setTog('set-fast', Save.settings.fastAI);
   setTog('set-log', Save.settings.showLog);
+  const sp = document.getElementById('settings-profile');
+  if (sp) sp.textContent = Save.profile
+    ? `Ficha del paciente: ${Save.profile.name} · ${Save.profile.id} (ingreso: ${Save.profile.created})`
+    : '';
 }
 
 function toggleSetting(key) {
@@ -657,8 +711,7 @@ function toggleSetting(key) {
 }
 
 function resetSave() {
-  if (!confirm('¿Borrar TODO el progreso? Perderás tus 💊, mazos comprados y tus mazos personalizados.')) return;
-  try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  if (!confirm('¿Borrar TODO el progreso? Perderás tus 💊, mazos comprados y tus mazos personalizados. (Tu ficha de paciente y tu ID se conservan.)')) return;
   Save.coins = 150;
   Save.ownedSets = ['sanatorio'];
   Save.customDecks = [];
@@ -668,6 +721,7 @@ function resetSave() {
   Save.cardCollection = {};
   Save.cardVariants = {};
   Save.settings = { sound: true, fastAI: false, showLog: true };
+  persistSave();
   applySettings();
   renderSettings();
   showScreen('main-menu');

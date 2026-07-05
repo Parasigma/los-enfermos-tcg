@@ -74,6 +74,24 @@
     </div>
   </div>
 
+  <!-- FICHA DE INGRESO: registro de usuario la primera vez -->
+  <div id="register-screen" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:42px">🏥 FICHA DE INGRESO</h2>
+      <p class="lore">
+        Bienvenido al <b>Manicomio San José</b>. Antes de repartir la medicación,
+        el Director necesita tu nombre para abrirte expediente.<br>
+        Se te asignará un <b>número de paciente permanente</b> que guarda tu
+        progreso: pastillas, mazos, colección y sobres diarios.
+      </p>
+      <div class="join-row register-row">
+        <input id="reg-name" maxlength="16" placeholder="Tu nombre de enfermo" spellcheck="false" autocomplete="off">
+        <button id="btn-register" class="img-btn join-btn">📝 Ingresar</button>
+      </div>
+      <div id="reg-hint" class="hint"></div>
+    </div>
+  </div>
+
   <!-- MENÚ PRINCIPAL (fondo e identidad pintados en assets/fondo_menu.jpg) -->
   <div id="main-menu" class="overlay">
     <div id="menu-stage">
@@ -84,6 +102,7 @@
         <button id="btn-shop" class="img-btn">🛒 Tienda de Mazos</button>
         <button id="btn-settings" class="img-btn">⚙️ Ajustes</button>
         <div class="coins-badge">💊 <span id="menu-coins">0</span> pastillas</div>
+        <div id="menu-profile" class="profile-badge"></div>
       </div>
       <div class="version-tag">v1.3</div>
     </div>
@@ -170,7 +189,10 @@
         <div class="setting-row"><span>⏩ IA rápida</span><button id="set-fast" class="toggle"></button></div>
         <div class="setting-row"><span>📜 Mostrar crónica</span><button id="set-log" class="toggle"></button></div>
       </div>
+      <div id="settings-profile" class="hint"></div>
       <div class="menu-buttons">
+        <button id="btn-export-save" class="small-btn">📋 Copiar código de progreso</button>
+        <button id="btn-import-save" class="small-btn">📥 Cargar código de progreso</button>
         <button id="btn-reset-save" class="small-btn danger">🗑️ Borrar progreso</button>
         <button class="img-btn" data-back>← Volver</button>
       </div>
