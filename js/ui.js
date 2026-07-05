@@ -7,6 +7,11 @@
 let G = null;
 let busy = false; // true durante el turno de la IA o animaciones bloqueantes
 
+/* dispositivo táctil (móvil/tablet): sin vista previa de hover — el
+   toque disparaba mouseenter y dejaba la carta gigante clavada a la
+   derecha. En táctil se inspecciona con pulsación larga. */
+const IS_TOUCH = window.matchMedia && window.matchMedia('(hover: none)').matches;
+
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -253,13 +258,19 @@ function renderEndTurn() {
 
 /* ---------------- PREVIEW GRANDE ---------------- */
 
-function showPreviewCard(c) { $('#preview').innerHTML = bigCardHTML(c); $('#preview').classList.add('show'); }
+function showPreviewCard(c) {
+  if (IS_TOUCH) return;
+  $('#preview').innerHTML = bigCardHTML(c);
+  $('#preview').classList.add('show');
+}
 function showPreviewMinion(m) {
+  if (IS_TOUCH) return;
   const fake = { def: m.def };
   $('#preview').innerHTML = bigCardHTML(fake);
   $('#preview').classList.add('show');
 }
 function showPreviewHero(p) {
+  if (IS_TOUCH) return;
   const h = p.hero;
   $('#preview').innerHTML = `
     <div class="card big t-spell hero-preview ${p.deckId}">
@@ -712,6 +723,34 @@ function fitStage() {
     const s4 = Math.min(window.innerWidth / 1540, window.innerHeight / 1021);
     ss.style.transform = `translate(-50%, -50%) scale(${s4})`;
   }
+}
+
+/* ---------------- PANTALLA COMPLETA (navegador) ---------------- */
+
+function fsActive() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+function toggleFullscreen() {
+  const el = document.documentElement;
+  if (fsActive()) {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  } else if (el.requestFullscreen) {
+    el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  } else if (el.webkitRequestFullscreen) {
+    el.webkitRequestFullscreen();
+  } else {
+    /* iPhone Safari no permite pantalla completa por API */
+    banner('📲 En iPhone: Compartir → «Añadir a pantalla de inicio»');
+  }
+}
+
+function updateFsButton() {
+  const b = $('#btn-fullscreen');
+  if (!b) return;
+  /* en la app de escritorio y en la APK ya se va a pantalla completa */
+  if (window.electronMP || window.Capacitor) { b.style.display = 'none'; return; }
+  b.textContent = fsActive() ? '✕ SALIR DE PANTALLA COMPLETA' : '⛶ PANTALLA COMPLETA';
 }
 
 function entityFromPoint(x, y) {
