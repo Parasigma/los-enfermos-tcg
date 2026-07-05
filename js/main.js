@@ -95,6 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
   /* inspector de carta en grande (falso 3D) */
   initCardInspector();
 
+  /* pantalla completa en navegador */
+  document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', () => { updateFsButton(); fitStage(); });
+  document.addEventListener('webkitfullscreenchange', () => { updateFsButton(); fitStage(); });
+  updateFsButton();
+
   fitStage();
   window.addEventListener('resize', fitStage);
+  window.addEventListener('orientationchange', () => setTimeout(fitStage, 120));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitStage);
 });

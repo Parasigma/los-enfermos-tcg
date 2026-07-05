@@ -741,6 +741,19 @@ body {
   100% { opacity: 0; transform: translate(-50%, -62%) scale(.9); }
 }
 
+/* ---------------- BOTÓN DE PANTALLA COMPLETA ---------------- */
+
+#btn-fullscreen {
+  position: fixed;
+  top: 8px; right: 10px;
+  z-index: 640;
+  font-size: 12.5px;
+  letter-spacing: .5px;
+  padding: 10px 16px;
+  opacity: .92;
+}
+#btn-fullscreen:hover { opacity: 1; }
+
 /* ---------------- INSPECTOR DE CARTA (falso 3D) ---------------- */
 
 #card-inspector {
@@ -898,10 +911,12 @@ body {
 
 /* ---------------- BOTÓN FLOTANTE DE PAUSA ---------------- */
 
-/* dentro del escenario: escala con el juego en cualquier pantalla */
+/* dentro del escenario: escala con el juego en cualquier pantalla
+   (desplazado del rincón para no chocar con el botón de pantalla
+   completa del navegador) */
 #btn-pause {
   position: absolute;
-  top: 6px; left: 1586px;
+  top: 6px; left: 1392px;
   width: 78px; height: 78px;
   display: none;
   align-items: center;
