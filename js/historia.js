@@ -84,10 +84,10 @@ HISTORIA.capitulo1 = {
       victoria: 'Kevin entra en el sanatorio dejando una estela aromática inolvidable.'
     },
     {
-      id: 'jorge', nombre: 'Jorge Monzo «El Ventosero»',
-      hero: 'jorgeHero', deck: 'mofeta', desbloquea: null,
-      emoji: '💨', foto: 'assets/ilustraciones/monzo.png',
-      reto: 'Sus cuescos hacen saltar las alarmas de incendios.',
+      id: 'jorge', nombre: 'Jorge Monzo «El Impresor»',
+      hero: 'jorgeHero', deck: 'monzo', desbloquea: 'monzo',
+      emoji: '🖨️', foto: 'assets/ilustraciones/monzo.png',
+      reto: 'Calvo, pedorro y con una impresora 3D que no para.',
       intro: [
         { quien: 'rival', espera: 1, duracion: 4.5, texto: 'Monzo presente. Mis cuescos ya han hecho saltar <b>tres alarmas de incendios</b>.' },
         { quien: 'yo', espera: 0.7, duracion: 4, texto: 'Por eso mismo tengo lista una sala insonorizada para ti, Jorge.' }

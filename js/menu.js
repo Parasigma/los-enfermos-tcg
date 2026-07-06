@@ -32,7 +32,8 @@ const Save = {
 const PLAYABLE_HEROES = [
   { id: 'director', set: 'sanatorio' },
   { id: 'kevin', set: 'mofeta' },
-  { id: 'marioHero', set: 'fuga' }
+  { id: 'marioHero', set: 'fuga' },
+  { id: 'jorgeHero', set: 'monzo' }
 ];
 
 /* ---------- mazos: arquetipos + propios ---------- */
@@ -52,6 +53,12 @@ function archetypes() {
     list.push({
       id: 'arch_fuga', archetype: true, hero: 'marioHero',
       name: 'Fuga del Manicomio', cards: DECKS.fuga
+    });
+  }
+  if (Save.ownedSets.includes('monzo')) {
+    list.push({
+      id: 'arch_monzo', archetype: true, hero: 'jorgeHero',
+      name: 'La Impresora 3D', cards: DECKS.monzo
     });
   }
   return list;

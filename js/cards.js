@@ -70,15 +70,15 @@ const HEROES = {
          mazos existentes como placeholder hasta que se diseñen) --- */
   jorgeHero: {
     id: 'jorgeHero',
-    name: 'Jorge Monzo «El Ventosero»',
-    title: 'Pedos que tumban a un caballo',
-    portrait: '💨',
+    name: 'Jorge Monzo «El Impresor»',
+    title: 'Calvo, pedorro y semi-pro retirado',
+    portrait: '🖨️',
     power: {
-      /* pedos que hacen saltar las alarmas: daño a TODA la sala */
-      name: 'Ventosidad Letal', cost: 2, icon: '💨', target: null,
-      desc: 'Suelta un cuesco que hace saltar las alarmas: inflige 1 de daño a TODOS los esbirros enemigos.',
-      use(g, p) { const opp = g.players[1 - p.idx]; for (const m of [...opp.board]) dealDamage(g, m, 1); },
-      aiWants(g, p) { return g.players[1 - p.idx].board.length > 0; }
+      /* su seña de identidad: la impresora 3D siempre echando humo */
+      name: 'Imprimir en 3D', cost: 2, icon: '🖨️', target: null,
+      desc: 'IMPRIME una carta al azar: una ficha monocroma «impresa en 3D» (floja pero útil) en tu mano.',
+      use(g, p) { imprimirRandom(g, p); },
+      aiWants(g, p) { return p.hand.length < 9; }
     }
   },
   victorHero: {
@@ -870,7 +870,183 @@ const CARDS = {
     flavor: 'Corre en pijama y zapatillas del manicomio. Nadie lo alcanza.'
   },
 
+  /* ============ MAZO: LA IMPRESORA 3D (Jorge Monzo) ============
+     Mecánica propia: IMPRIMIR — genera cartas «impresas en 3D» (fichas
+     monocromas moradas, flojas pero útiles) que se activan en distintos
+     momentos: al jugarse, al final del turno, al atacar, al robar...
+     Tema: pedos (distintos a Kevin), calvicie, impresora 3D, Counter-
+     Strike y WoW Classic, y Peter (su gato gordo de 9 kilos). */
+
+  impresora3d: {
+    id: 'impresora3d', clazz: 'monzo', type: 'minion', rarity: 'rara',
+    name: 'La Impresora 3D', cost: 3, attack: 2, health: 4, emoji: '🖨️',
+    text: 'Al final de tu turno, <b>IMPRIME</b> una carta al azar.',
+    flavor: 'Lleva imprimiendo la misma figurita desde el martes. Va por el intento 14.',
+    endTurn(g, p, m) { imprimirRandom(g, p); }
+  },
+
+  calvoReluciente: {
+    id: 'calvoReluciente', clazz: 'monzo', type: 'minion', rarity: 'común',
+    name: 'Cabeza Reluciente', cost: 3, attack: 3, health: 3, emoji: '🧑‍🦲',
+    text: '<b>Grito de Batalla:</b> <b>IMPRIME</b> unas «Gafas de Nikuman».',
+    flavor: 'Su calva refleja el flexo. Media sala juega con gafas de sol.',
+    battlecry(g, p, m) { imprimir(g, p, 'impGafas'); }
+  },
+
+  exSemipro: {
+    id: 'exSemipro', clazz: 'monzo', type: 'minion', rarity: 'rara',
+    name: 'Ex-Semipro de CS', cost: 3, attack: 3, health: 3, emoji: '🔫',
+    charge: true,
+    text: '<b>Embestida.</b> Cuando ataca, <b>IMPRIME</b> una «Herramienta».',
+    flavor: 'Llegó a semi-pro. Hoy hace clutches en la ranked de los martes.',
+    onAttack(g, p, m, t) { imprimir(g, p, 'impHerramienta'); }
+  },
+
+  peterGato: {
+    id: 'peterGato', clazz: 'monzo', type: 'minion', rarity: 'legendaria',
+    name: 'Peter, el Gato Gordo', cost: 6, attack: 5, health: 6, emoji: '🐈',
+    taunt: true,
+    text: '<b>Provocar.</b> Cuando ataca, <b>IMPRIME</b> una «Figura del Manicomio».',
+    flavor: 'Nueve kilos de gato. Se sienta en el teclado en plena ranked y nadie se lo impide.',
+    onAttack(g, p, m, t) { imprimir(g, p, 'impFigura'); }
+  },
+
+  manualImpresora: {
+    id: 'manualImpresora', clazz: 'monzo', type: 'spell', rarity: 'épica',
+    name: 'Manual de la Impresora', cost: 2, emoji: '📘',
+    text: '<b>IMPRIME</b> 2 cartas. Mientras esté en tu mano, <b>IMPRIME</b> una cada vez que robas.',
+    flavor: '350 páginas. Nadie lo ha leído. Todos lo tienen abierto por el capítulo de la cama caliente.',
+    spell(g, p) { imprimirRandom(g, p); imprimirRandom(g, p); },
+    onDraw(g, p, c) { imprimirRandom(g, p); }
+  },
+
+  quedarseCalvo: {
+    id: 'quedarseCalvo', clazz: 'monzo', type: 'spell', rarity: 'común',
+    name: 'Quedarse Calvo', cost: 1, emoji: '🧴',
+    target: 'enemyMinion',
+    text: 'Un esbirro enemigo pierde <b>3</b> de ataque.',
+    flavor: 'Un día tienes flequillo; al siguiente, entradas hasta la nuca.',
+    spell(g, p, t) { if (t && !t.isHero) t.attack = Math.max(0, t.attack - 3); },
+    aiTarget(g, p) { return g.players[1 - p.idx].board.slice().sort((a, b) => b.attack - a.attack)[0] || null; },
+    aiWants(g, p) { return g.players[1 - p.idx].board.some(m => m.attack >= 2); }
+  },
+
+  pedoSilencioso: {
+    id: 'pedoSilencioso', clazz: 'monzo', type: 'spell', rarity: 'común',
+    name: 'Pedo Silencioso pero Mortal', cost: 3, emoji: '😶‍🌫️',
+    target: 'minion',
+    text: 'Inflige <b>4</b> de daño a un esbirro. Sin ruido. Sin piedad.',
+    flavor: 'Kevin apesta y se le nota. Jorge apesta y no lo sabrás hasta que sea tarde.',
+    spell(g, p, t) { dealDamage(g, t, 4); },
+    aiTarget(g, p) {
+      const opp = g.players[1 - p.idx];
+      const k = opp.board.filter(m => m.health <= 4).sort((a, b) => b.attack - a.attack);
+      return k[0] || opp.board.slice().sort((a, b) => b.attack - a.attack)[0] || null;
+    }
+  },
+
+  ataquePeter: {
+    id: 'ataquePeter', clazz: 'monzo', type: 'spell', rarity: 'común',
+    name: 'Ataque de Peter', cost: 2, emoji: '🐾',
+    target: 'enemyMinion',
+    text: 'Inflige <b>2</b> de daño a un esbirro enemigo e <b>IMPRIME</b> una «Figura».',
+    flavor: 'Peter no ataca por hambre. Ataca porque le has mirado mal.',
+    spell(g, p, t) { dealDamage(g, t, 2); imprimir(g, p, 'impFigura'); },
+    aiTarget(g, p) {
+      const opp = g.players[1 - p.idx];
+      const k = opp.board.filter(m => m.health <= 2).sort((a, b) => b.attack - a.attack);
+      return k[0] || opp.board[0] || null;
+    },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length > 0; }
+  },
+
+  echarDeathmatch: {
+    id: 'echarDeathmatch', clazz: 'monzo', type: 'spell', rarity: 'común',
+    name: 'Echar unos Deathmatch', cost: 3, emoji: '🎯',
+    text: 'Inflige <b>2</b> de daño a <b>2</b> enemigos al azar.',
+    flavor: '«Solo una y a dormir», dijo. Eran las 4 AM e iba por la número 30.',
+    spell(g, p) {
+      const opp = g.players[1 - p.idx];
+      for (let i = 0; i < 2; i++) {
+        const tg = [opp.hero, ...opp.board.filter(m => !m.dead)];
+        if (tg.length) dealDamage(g, tg[Math.floor(Math.random() * tg.length)], 2);
+      }
+    }
+  },
+
+  festivalRandom: {
+    id: 'festivalRandom', clazz: 'monzo', type: 'spell', rarity: 'épica',
+    name: 'Festival Random', cost: 3, emoji: '🎪',
+    text: 'Reparte <b>3</b> de daño al azar entre los enemigos.',
+    flavor: 'Paola eligió el cartel. Jorge solo quería el bocata de panceta y una sombra.',
+    spell(g, p) {
+      const opp = g.players[1 - p.idx];
+      for (let i = 0; i < 3; i++) {
+        const tg = [opp.hero, ...opp.board.filter(m => !m.dead)];
+        if (!tg.length) break;
+        dealDamage(g, tg[Math.floor(Math.random() * tg.length)], 1);
+      }
+    }
+  },
+
+  viajeTurquia: {
+    id: 'viajeTurquia', clazz: 'monzo', type: 'spell', rarity: 'rara',
+    name: 'Viaje a Turquía', cost: 3, emoji: '✈️',
+    text: 'Restaura <b>3</b> de salud a tu héroe e <b>IMPRIME</b> una carta.',
+    flavor: 'Se fue calvo. Volvió con flequillo, 4000 folículos nuevos y una factura de escándalo.',
+    spell(g, p) { heal(g, p.hero, 3); imprimirRandom(g, p); },
+    aiWants(g, p) { return p.hero.hp <= 26; }
+  },
+
+  jugarClassic: {
+    id: 'jugarClassic', clazz: 'monzo', type: 'spell', rarity: 'épica',
+    name: 'Jugar a Classic', cost: 5, emoji: '🗡️',
+    text: 'Roba <b>3</b> cartas. La nostalgia es grindear lo mismo otra vez.',
+    flavor: 'El mismo WoW de hace 15 años, las mismas 40 horas de farmeo, la misma felicidad.',
+    spell(g, p) { drawCards(g, p, 3); },
+    aiWants(g, p) { return p.hand.length <= 6; }
+  },
+
   /* ============ FICHAS Y ESPECIALES ============ */
+
+  /* --- cartas IMPRESAS en 3D (fichas monocromas del mazo de Jorge) --- */
+  impFigura: {
+    id: 'impFigura', clazz: 'impreso', type: 'minion', rarity: 'común', token: true, impreso: true,
+    name: 'Figura del Manicomio', cost: 1, attack: 2, health: 1, emoji: '🗿',
+    text: 'Impresa en 3D.',
+    flavor: 'Una miniatura de Nikuman con las gafas torcidas. Pincha si la coges mal.'
+  },
+  impCubo: {
+    id: 'impCubo', clazz: 'impreso', type: 'minion', rarity: 'común', token: true, impreso: true,
+    name: 'Cubo de Calibración', cost: 1, attack: 0, health: 3, emoji: '🧊',
+    taunt: true,
+    text: '<b>Provocar.</b> Impreso en 3D.',
+    flavor: 'La primera pieza que imprime todo el mundo. La única que sale bien a la primera.'
+  },
+  impGafas: {
+    id: 'impGafas', clazz: 'impreso', type: 'spell', rarity: 'común', token: true, impreso: true,
+    name: 'Gafas de Nikuman', cost: 1, emoji: '👓',
+    target: 'friendlyMinion',
+    text: 'Un esbirro aliado gana <b>+2</b> de ataque. Impresas en 3D.',
+    flavor: 'Ven mejor los headshots. También lo cerca que estás de perder.',
+    spell(g, p, t) { if (t && !t.isHero) t.attack += 2; },
+    aiTarget(g, p) { return p.board.slice().sort((a, b) => b.attack - a.attack)[0] || null; },
+    aiWants(g, p) { return p.board.length > 0; }
+  },
+  impHerramienta: {
+    id: 'impHerramienta', clazz: 'impreso', type: 'spell', rarity: 'común', token: true, impreso: true,
+    name: 'Herramienta Impresa', cost: 1, emoji: '🔧',
+    target: 'minion',
+    text: 'Inflige <b>2</b> de daño a un esbirro. Impresa en 3D.',
+    flavor: 'Una llave inglesa de PLA. Aguanta exactamente un golpe.',
+    spell(g, p, t) { dealDamage(g, t, 2); },
+    aiTarget(g, p) {
+      const opp = g.players[1 - p.idx];
+      const k = opp.board.filter(m => m.health <= 2).sort((a, b) => b.attack - a.attack);
+      return k[0] || opp.board[0] || null;
+    },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length > 0; }
+  },
 
   gato: {
     id: 'gato', clazz: 'token', type: 'minion', rarity: 'común', token: true,
@@ -922,6 +1098,12 @@ const SETS = {
     cards: ['mofetaJr', 'cuescoVolador', 'cuescoAndante', 'mochilaPedo', 'pedoProteico',
       'hamburguesaDoble', 'kebabMadrugada', 'tupperSobras', 'cuescoExpulsor', 'reyKebab',
       'pedoCaotico', 'pedoDefinitivo']
+  },
+  monzo: {
+    name: 'La Impresora 3D', kind: 'mazo', tag: 'MAZO · IMPRESORA',
+    cards: ['impresora3d', 'calvoReluciente', 'exSemipro', 'peterGato', 'manualImpresora',
+      'quedarseCalvo', 'pedoSilencioso', 'ataquePeter', 'echarDeathmatch', 'festivalRandom',
+      'viajeTurquia', 'jugarClassic']
   },
   fuga: {
     name: 'Fuga del Manicomio', kind: 'expansion', tag: 'EXP · FUGA',
@@ -981,5 +1163,12 @@ const DECKS = {
     ...x2('viciada'), ...x2('odioFiti'), ...x2('pedoAtomico'), ...x2('cincoGatos'),
     ...x2('top1'),
     'cauntu', 'kevin', 'ciborg', 'nikumanCard'
+  ],
+  /* mazo por defecto del héroe Jorge Monzo: motor de IMPRIMIR + básicas */
+  monzo: [
+    ...x2('impresora3d'), ...x2('calvoReluciente'), ...x2('exSemipro'), ...x2('manualImpresora'),
+    ...x2('quedarseCalvo'), ...x2('pedoSilencioso'), ...x2('ataquePeter'), ...x2('viajeTurquia'),
+    'echarDeathmatch', 'festivalRandom', 'peterGato', 'jugarClassic',
+    ...x2('celador'), ...x2('paquito'), ...x2('victor'), ...x2('montreal'), ...x2('terapiaChoque')
   ]
 };

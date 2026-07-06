@@ -1291,6 +1291,13 @@ body {
   to { opacity: .95; }
 }
 
+/* cartas IMPRESAS en 3D (mazo de Jorge): monocromas moradas, como recién
+   salidas de la impresora. Tinte homogéneo sobre arte + marco. */
+.card.impreso, .minion.impreso {
+  filter: grayscale(1) sepia(1) hue-rotate(214deg) saturate(2.6) brightness(1.02)
+          drop-shadow(0 0 6px rgba(150, 90, 220, .8));
+}
+
 /* 🏆 dorada: marcos GOLD dibujados (versión _gold de cada fondo) */
 .card.v-dorada { filter: drop-shadow(0 0 8px rgba(255, 200, 60, .95)); }
 .card.v-dorada::after { background-image: url('../assets/cards_spell_gold.png'); }

@@ -612,6 +612,12 @@ function flushFx() {
         Sfx.play('attack');
         break;
       }
+      case 'print': {
+        const [x, y] = heroPoint(data.owner);
+        vfxRise(x, y, ['🖨️', '🟪', '✨'], 6);
+        Sfx.play('draw');
+        break;
+      }
       case 'encane': {
         const [x, y] = heroPoint(data.owner);
         vfxBurst(x, y, ['🔥', '💢'], 6, { dist: 45 });

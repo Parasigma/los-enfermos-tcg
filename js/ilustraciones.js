@@ -86,6 +86,25 @@ const ILUSTRACIONES = {
   eduardoSeguridad:   'assets/ilustraciones/eduardoSeguridad.png',   // Eduardo, «Seguridad»
   fugado:             'assets/ilustraciones/fugado.png',             // Enfermo Fugado (ficha)
 
+  /* ========== MAZO: LA IMPRESORA 3D (Jorge Monzo) ========== */
+  impresora3d:    'assets/ilustraciones/impresora3d.png',    // La Impresora 3D
+  calvoReluciente:'assets/ilustraciones/calvoReluciente.png',// Cabeza Reluciente
+  exSemipro:      'assets/ilustraciones/exSemipro.png',      // Ex-Semipro de CS
+  peterGato:      'assets/ilustraciones/peterGato.png',      // Peter, el Gato Gordo
+  manualImpresora:'assets/ilustraciones/manualImpresora.png',// Manual de la Impresora
+  quedarseCalvo:  'assets/ilustraciones/quedarseCalvo.png',  // Quedarse Calvo
+  pedoSilencioso: 'assets/ilustraciones/pedoSilencioso.png', // Pedo Silencioso pero Mortal
+  ataquePeter:    'assets/ilustraciones/ataquePeter.png',    // Ataque de Peter
+  echarDeathmatch:'assets/ilustraciones/echarDeathmatch.png',// Echar unos Deathmatch
+  festivalRandom: 'assets/ilustraciones/festivalRandom.png', // Festival Random
+  viajeTurquia:   'assets/ilustraciones/viajeTurquia.png',   // Viaje a Turquía
+  jugarClassic:   'assets/ilustraciones/jugarClassic.png',   // Jugar a Classic
+  /* cartas impresas en 3D (fichas) */
+  impFigura:      'assets/ilustraciones/impFigura.png',      // Figura del Manicomio
+  impCubo:        'assets/ilustraciones/impCubo.png',        // Cubo de Calibración
+  impGafas:       'assets/ilustraciones/impGafas.png',       // Gafas de Nikuman (impresas)
+  impHerramienta: 'assets/ilustraciones/impHerramienta.png', // Herramienta Impresa
+
   /* ========== FICHAS Y ESPECIALES ========== */
   gato:           'assets/ilustraciones/gato.png',           // Gato de Nikuman (ficha)
   nikuborg:       'assets/ilustraciones/nikuborg.png',       // Niku-Borg 9000 (ficha)

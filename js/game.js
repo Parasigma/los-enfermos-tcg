@@ -51,7 +51,7 @@ function shuffle(a) {
 function makePlayer(heroId, deckList, idx) {
   const deck = deckList.map(makeCardInstance);
   shuffle(deck);
-  const deckIds = { director: 'sanatorio', nikuman: 'manonegra', kevin: 'mofeta' };
+  const deckIds = { director: 'sanatorio', nikuman: 'manonegra', kevin: 'mofeta', marioHero: 'fuga', jorgeHero: 'monzo' };
   return {
     idx, deckId: deckIds[heroId] || 'sanatorio',
     hero: {
@@ -108,6 +108,11 @@ function drawCards(g, p, n) {
       p.hand.push(c);
       drawn.push(c);
       fx('draw', { owner: p.idx, uid: c.uid });
+      /* IMPRIMIR «al robar»: cartas en tu mano (salvo la recién robada)
+         que se activan cuando robas (mecánica de Jorge Monzo) */
+      for (const h of [...p.hand]) {
+        if (h !== c && h.def.onDraw) h.def.onDraw(g, p, h);
+      }
     }
   }
   return drawn;
@@ -127,6 +132,12 @@ function discardRandom(g, p, n) {
       log(g, `🔥 ¡ENCANE! «${c.def.name}» se activa al ser descartada.`);
       fx('encane', { owner: p.idx });
       c.def.encane(g, p, c);
+      checkDeaths(g);
+      checkGameOver(g);
+    }
+    /* IMPRIMIR «al descartarse» */
+    if (c.def.onDiscard) {
+      c.def.onDiscard(g, p, c);
       checkDeaths(g);
       checkGameOver(g);
     }
@@ -221,6 +232,28 @@ function summon(g, p, id) {
   p.board.push(m);
   fx('summon', { minion: m, owner: p.idx });
   return m;
+}
+
+/* ---------- IMPRIMIR (mazo de Jorge Monzo) ----------
+   Genera una carta «impresa en 3D» (ficha monocroma morada, floja pero
+   útil) en la mano. Distintas cartas la disparan en distintos momentos
+   (al jugarse, al final del turno, al atacar, al robar...). */
+const IMPRESOS = ['impFigura', 'impCubo', 'impGafas', 'impHerramienta'];
+
+function imprimir(g, p, id) {
+  if (p.hand.length >= 10) {
+    log(g, `🖨️ La impresora se atasca: no cabe «${CARDS[id].name}» en la mano.`);
+    return null;
+  }
+  const c = makeCardInstance(id);
+  p.hand.push(c);
+  log(g, `🖨️ ${heroName(p)} imprime en 3D: «${c.def.name}».`);
+  fx('print', { owner: p.idx, uid: c.uid });
+  return c;
+}
+
+function imprimirRandom(g, p) {
+  return imprimir(g, p, IMPRESOS[Math.floor(Math.random() * IMPRESOS.length)]);
 }
 
 /* ---------- objetivos ---------- */
@@ -327,6 +360,11 @@ function doAttack(g, attacker, target) {
       log(g, `🔨 Se rompe «${attacker.weapon.def.name}».`);
       attacker.weapon = null;
     }
+  }
+
+  /* IMPRIMIR «al atacar» (esbirros de Jorge Monzo) */
+  if (attacker.def && attacker.def.onAttack && !attacker.dead) {
+    attacker.def.onAttack(g, g.players[attacker.owner], attacker, target);
   }
 
   checkDeaths(g);
