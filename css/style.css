@@ -5,6 +5,24 @@
    escala entero a la ventana con transform: scale().
    ========================================================= */
 
+/* Tipografía del juego: Merriweather (Google Fonts) auto-alojada en
+   assets/fonts para que funcione también offline (Electron y APK).
+   Es un archivo variable: un solo fichero cubre los pesos 400-900. */
+@font-face {
+  font-family: 'Merriweather';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('../assets/fonts/merriweather.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Merriweather';
+  font-style: italic;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('../assets/fonts/merriweather-italic.woff2') format('woff2');
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
 
 :root {
@@ -21,7 +39,7 @@
 html, body { height: 100%; overflow: hidden; }
 
 body {
-  font-family: 'Georgia', 'Palatino Linotype', serif;
+  font-family: 'Merriweather', 'Georgia', 'Palatino Linotype', serif;
   background: radial-gradient(ellipse at 50% 40%, #17332e 0%, #0b1a17 60%, #050b0a 100%);
   color: var(--parchment);
   -webkit-tap-highlight-color: transparent;
@@ -42,9 +60,31 @@ body {
   width: 1672px; height: 941px;
   transform: translate(-50%, -50%);
   transform-origin: center center;
-  background: url('../assets/tablero.jpg') 0 0 / 100% 100% no-repeat;
+  background: #10241f;   /* respaldo oscuro tras los círculos del marco */
   border-radius: 10px;
   box-shadow: 0 0 60px rgba(0, 0, 0, .8);
+}
+
+/* capas del tablero: ilustraciones (abajo) → marco pintado → contenido.
+   El orden en el DOM decide el apilado (sin z-index): las .hero-art van
+   primero (debajo), luego #board-frame, y el resto encima. */
+.hero-art {
+  position: absolute;
+  overflow: hidden;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero-art img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 50% 16%;
+}
+#hero-art-1 { left: 611px; top: 34px;  width: 135px; height: 138px; } /* rival (arriba) */
+#hero-art-0 { left: 206px; top: 716px; width: 133px; height: 142px; } /* tú (abajo) */
+#board-frame {
+  position: absolute; inset: 0;
+  background: url('../assets/fondo_batalla.png') 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
 }
 
 /* ---------------- ZONAS DEL TABLERO ---------------- */
@@ -466,30 +506,22 @@ body {
 }
 .hud > * { position: absolute; pointer-events: auto; }
 
-/* retrato: transparente, el arte ya lo pinta; solo brillos e interacción */
+/* retrato: transparente (la ilustración va DETRÁS del marco); aquí solo
+   el brillo circular y la zona de interacción del héroe */
 .portrait {
   border-radius: 50%;
   transition: box-shadow .15s;
-  overflow: hidden;
-}
-/* ilustración del héroe recortada al círculo claro del marco pintado */
-.portrait .portrait-img {
-  position: absolute;
-  left: 5%; top: 5%;
-  width: 90%; height: 90%;
-  border-radius: 50%;
-  object-fit: cover;
-  object-position: 50% 18%;
-  pointer-events: none;
 }
 .portrait.can-attack {
   box-shadow: 0 0 18px 6px rgba(120, 230, 120, .9);
   cursor: grab;
 }
 
-/* número de vida sobre el botón rojo pintado */
+/* vida: la bola roja (bola_heroes_vida.png) sobre la ilustración y, encima,
+   el número. Va justo donde el arte marca la vida del héroe. */
 .hp-gem {
   display: flex; align-items: center; justify-content: center;
+  background: url('../assets/bola_heroes_vida.png') 50% 50% / 100% 100% no-repeat;
   font-weight: bold; font-size: 24px;
   color: #fff;
   text-shadow: 0 2px 4px rgba(0, 0, 0, .9), 0 0 4px rgba(0, 0, 0, .6);
@@ -507,16 +539,33 @@ body {
 }
 
 /* poder de héroe: el arte ya pinta el botón; brillo cuando es usable */
+/* habilidad de héroe: círculo limpio del marco donde ponemos el icono
+   (imagen o emoji) de CADA habilidad, distinto por héroe */
 .power {
   border-radius: 50%;
   transition: box-shadow .15s, background .15s;
+  display: flex; align-items: center; justify-content: center;
 }
+/* el emoji tiende a dibujarse alto dentro de su caja: se baja un pelín
+   (proporcional al tamaño) para que quede centrado en el círculo
+   (las imágenes propias no lo necesitan) */
+.power .power-ico { line-height: 1; transform: translateY(0.09em); filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .7)); }
+.power .power-ico-img { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .7)); }
 .power.usable {
   cursor: pointer;
   box-shadow: 0 0 18px 5px rgba(255, 210, 87, .85);
 }
 .power.usable:hover { box-shadow: 0 0 24px 8px rgba(255, 230, 120, 1); }
 .power.used { background: rgba(0, 0, 0, .55); }
+.power.used .power-ico, .power.used .power-ico-img { opacity: .35; }
+
+/* coste de maná de la habilidad, en texto, sobre la bolita azul del marco */
+.power-cost {
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 20px; color: #eaf6ff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, .95), 0 0 4px rgba(20, 60, 120, .9);
+  pointer-events: none !important;
+}
 
 /* maná sobre las píldoras teal pintadas */
 .mana-zone {
@@ -558,22 +607,26 @@ body {
 .weapon .w-stats { font-size: 11px; font-weight: bold; color: var(--gold); }
 
 /* --- posiciones: HÉROE ENEMIGO (placa superior) --- */
-#enemy-hud .portrait   { left: 606px; top: 26px;  width: 156px; height: 156px; }
-#enemy-hud .hp-gem     { left: 708px; top: 126px; width: 62px;  height: 58px; }
-#enemy-hud .hero-name  { left: 782px; top: 94px;  width: 234px; height: 74px; }
-#enemy-hud .power      { left: 1032px; top: 68px; width: 104px; height: 104px; }
-#enemy-hud .mana-zone  { left: 1182px; top: 120px; width: 170px; height: 42px; }
-#enemy-hud .deck-badge { left: 1360px; top: 118px; width: 46px; height: 46px; }
-#enemy-hud .weapon     { left: 952px; top: 4px;   width: 66px; height: 66px; }
+#enemy-hud .portrait    { left: 611px; top: 34px;  width: 135px; height: 138px; }
+#enemy-hud .hp-gem      { left: 711px; top: 125px; width: 64px;  height: 64px; }
+#enemy-hud .hero-name   { left: 782px; top: 94px;  width: 234px; height: 74px; }
+#enemy-hud .power       { left: 1028px; top: 80px; width: 104px; height: 104px; }
+#enemy-hud .power .power-ico { font-size: 46px; }
+#enemy-hud .power-cost  { left: 1065px; top: 61px; width: 36px;  height: 36px; }
+#enemy-hud .mana-zone   { left: 1182px; top: 120px; width: 170px; height: 42px; }
+#enemy-hud .deck-badge  { left: 1360px; top: 118px; width: 46px; height: 46px; }
+#enemy-hud .weapon      { left: 952px; top: 4px;   width: 66px; height: 66px; }
 
 /* --- posiciones: TU HÉROE (placa inferior izquierda) --- */
-#player-hud .portrait   { left: 202px; top: 707px; width: 154px; height: 154px; }
-#player-hud .hp-gem     { left: 312px; top: 828px; width: 64px;  height: 62px; }
-#player-hud .hero-name  { left: 366px; top: 750px; width: 188px; height: 74px; }
-#player-hud .power      { left: 503px; top: 800px; width: 94px;  height: 94px; }
-#player-hud .mana-zone  { left: 1187px; top: 698px; width: 172px; height: 36px; }
-#player-hud .deck-badge { left: 1520px; top: 786px; width: 46px; height: 46px; }
-#player-hud .weapon     { left: 434px; top: 688px; width: 64px; height: 64px; }
+#player-hud .portrait    { left: 206px; top: 716px; width: 133px; height: 142px; }
+#player-hud .hp-gem      { left: 307px; top: 815px; width: 74px;  height: 74px; }
+#player-hud .hero-name   { left: 366px; top: 750px; width: 188px; height: 74px; }
+#player-hud .power       { left: 496px; top: 804px; width: 94px;  height: 94px; }
+#player-hud .power .power-ico { font-size: 36px; }
+#player-hud .power-cost  { left: 537px; top: 805px; width: 32px;  height: 32px; }
+#player-hud .mana-zone   { left: 1187px; top: 698px; width: 172px; height: 36px; }
+#player-hud .deck-badge  { left: 1520px; top: 786px; width: 46px; height: 46px; }
+#player-hud .weapon      { left: 434px; top: 688px; width: 64px; height: 64px; }
 
 /* ---------------- BOTÓN FIN DE TURNO (sobre la tele pintada) ---------------- */
 
@@ -1489,6 +1542,142 @@ body {
 #reg-name:focus { border-color: var(--gold); box-shadow: 0 0 10px rgba(255, 210, 87, .4); }
 #reg-hint { min-height: 18px; color: #e8b06a; }
 #settings-profile { margin-top: 14px; font-style: normal; color: #cfe3db; }
+
+/* ---------------- MODO HISTORIA: mapa de enemigos (marco pintado) ----------------
+   El marco fondo_menu_historia.png (966x1080) va ENCIMA de la lista; su
+   ventana central es transparente, así los enemigos asoman por ella y se
+   deslizan por debajo de los bordes del marco al hacer scroll. */
+#story-screen { overflow: hidden; padding: 0; }
+#story-stage {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 966px; height: 1080px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+}
+#story-frame {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: url('../assets/fondo_menu_historia.png') 0 0 / 100% 100% no-repeat;
+}
+/* pastilla azul con el nº de capítulo (entre el título y el lema) */
+#story-chapter {
+  position: absolute; left: 343px; top: 180px; width: 280px; height: 38px;
+  z-index: 3; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gold); font-weight: 900; font-size: 17px; letter-spacing: 4px;
+  text-shadow: 0 2px 4px #000;
+}
+/* lema (descripción del capítulo) en la placa de pergamino */
+#story-lema {
+  position: absolute; left: 142px; top: 224px; width: 690px; height: 40px;
+  z-index: 3; pointer-events: none;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 0 18px; color: #4a3a24; font-weight: bold;
+  font-size: 14.5px; line-height: 1.2;
+}
+/* VOLVER: zona clicable transparente sobre el botón pintado del marco */
+#btn-story-back {
+  position: absolute; left: 300px; top: 964px; width: 366px; height: 72px;
+  z-index: 3; background: transparent; border: none; cursor: pointer;
+}
+#btn-story-back:hover { background: rgba(255, 220, 120, .14); border-radius: 36px; }
+
+/* lista de enemigos DETRÁS del marco, recortada a la ventana */
+.story-list {
+  position: absolute; left: 112px; top: 276px; width: 754px; height: 641px;
+  z-index: 1; overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 12px 16px 18px;
+  scrollbar-width: thin; scrollbar-color: rgba(255, 210, 87, .4) transparent;
+}
+.story-list::-webkit-scrollbar { width: 7px; }
+.story-list::-webkit-scrollbar-thumb { background: rgba(255, 210, 87, .35); border-radius: 4px; }
+
+/* cada enemigo = plato boton_menu_historia.png (785x189) */
+.story-enemy {
+  position: relative; width: 100%; aspect-ratio: 785 / 189;
+  flex: 0 0 auto; perspective: 1700px;
+}
+.se-flip {
+  position: absolute; inset: 0; transform-style: preserve-3d;
+  transition: transform .78s cubic-bezier(.2, .8, .25, 1);
+}
+.se-flip.flipped { transform: rotateY(180deg); }
+.se-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: url('../assets/boton_menu_historia.png') 0 0 / 100% 100% no-repeat;
+}
+.se-back {
+  transform: rotateY(180deg);
+  filter: brightness(.4) saturate(.5);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.se-back .se-qmark { font-size: 46px; color: #f0dcae; filter: drop-shadow(0 2px 4px #000); }
+.se-back .se-num { font-size: 14px; letter-spacing: 3px; text-transform: uppercase; color: #d8c8a0; font-weight: bold; }
+
+/* retrato en el recuadro recortado (izquierda del plato) */
+.se-portrait {
+  position: absolute; left: 7.4%; top: 13.5%; width: 17.6%; height: 73%;
+  border-radius: 14px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 30, 26, .55);
+}
+.se-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.se-emoji { font-size: 46px; }
+
+/* nombre + reto sobre el pergamino central */
+.se-info {
+  position: absolute; left: 27%; top: 0; width: 35.5%; height: 100%;
+  display: flex; flex-direction: column; justify-content: center; text-align: left;
+}
+.se-name { color: #34260f; font-weight: bold; font-size: 18px; line-height: 1.14; }
+.se-reto { color: #5a4a33; font-size: 13px; margin-top: 5px; line-height: 1.3; }
+.se-boss {
+  color: #b8241a; font-size: 10px; font-weight: bold; letter-spacing: 1px;
+  border: 1px solid #b8241a; border-radius: 5px; padding: 1px 5px; margin-left: 4px;
+  vertical-align: middle; white-space: nowrap;
+}
+
+/* botón de acción sobre el recuadro verde de espadas (derecha) */
+.se-fight {
+  position: absolute; left: 63.5%; top: 7%; width: 35.5%; height: 85%;
+  background: transparent; border: none; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  transition: filter .15s, transform .1s;
+}
+.se-fl {
+  color: #f4e6c0; font-weight: bold; font-size: 14px; letter-spacing: 1px;
+  text-shadow: 0 2px 3px #000, 0 0 6px rgba(0, 0, 0, .6);
+}
+.se-fight.rematch .se-fl { font-size: 12px; color: #e8dcc0; }
+.se-fight.active { animation: seGlow 1.5s ease-in-out infinite; }
+.se-fight:hover { filter: brightness(1.15); }
+.se-fight:active { transform: translateY(2px); }
+@keyframes seGlow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(120, 255, 120, .3)); }
+  50% { filter: drop-shadow(0 0 13px rgba(150, 255, 120, .8)); }
+}
+
+/* sello DERROTADO cruzado sobre el plato */
+.se-stamp {
+  position: absolute; left: 25%; top: 50%; z-index: 4; pointer-events: none;
+  transform: translateY(-50%) rotate(-8deg);
+  color: rgba(184, 36, 26, .82); font-weight: bold; font-size: 30px; letter-spacing: 3px;
+  border: 4px solid rgba(184, 36, 26, .68); border-radius: 10px; padding: 2px 16px;
+}
+.story-enemy.beaten .se-front { filter: grayscale(.4) brightness(.92); }
+.story-enemy.current { z-index: 2; }
+.story-enemy.revealing { z-index: 5; }
+
+.unlock-note { display: inline-block; margin-top: 10px; color: var(--gold); font-weight: bold; }
+.shop-slot-art.locked { filter: grayscale(.4) brightness(.85); }
+/* hueco bloqueado: sobre el botón verde pintado, "BLOQUEADO" en vez del
+   precio; es solo un indicador, no se puede pulsar */
+.shop-buy.blocked {
+  font-size: 18px; letter-spacing: 1px; color: #e6cf9a;
+  pointer-events: none !important;
+}
 
 /* ---------------- GESTOR DE MAZOS (sobre fondo_mazos.jpg) ---------------- */
 

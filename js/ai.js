@@ -104,13 +104,17 @@ async function aiTakeTurn(g) {
     let usar = true;
     let t = null;
     if (!pow.target) {
-      /* poderes sin objetivo (Trapicheo de Mario): solo con cartas en mano */
-      usar = p.hand.length > 0;
-    } else if (p.hero.def.id === 'nikuman' || p.hero.def.id === 'kevin') {
+      /* poderes sin objetivo (Trapicheo, Ventosidad AoE): que el propio
+         poder decida si merece la pena (aiWants) */
+      usar = pow.aiWants ? pow.aiWants(g, p) : p.hand.length > 0;
+    } else if (pow.aiTarget) {
+      /* objetivo elegido por el propio poder según su lógica */
+      t = pow.aiTarget(g, p);
+      usar = !!t;
+    } else {
+      /* red de seguridad: apuntar al esbirro enemigo más peligroso o a la cara */
       const kill = opp.board.filter(m => m.health === 1).sort((a, b) => b.attack - a.attack);
       t = kill[0] || opp.hero;
-    } else {
-      t = p.hero; // el Director se cura a sí mismo
     }
     if (usar) {
       AIH.notify(`${pow.icon} ${p.hero.def.name.split(',')[0]} usa «${pow.name}»`);

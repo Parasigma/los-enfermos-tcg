@@ -188,19 +188,29 @@ function renderHud(idx) {
   const gems = [];
   for (let i = 0; i < p.maxMana; i++) gems.push(`<span class="gem ${i < p.mana ? 'full' : 'empty'}"></span>`);
 
-  /* retrato del héroe recortado en el círculo pintado del tablero */
+  /* la ilustración del héroe va en la capa DETRÁS del marco (asoma por el
+     círculo transparente). Solo se reescribe cuando cambia de héroe. */
   const heroArtUrl = (typeof ILUSTRACIONES !== 'undefined' && ILUSTRACIONES['hero_' + h.def.id]) || null;
-  const heroArt = heroArtUrl
-    ? `<img class="portrait-img" src="${heroArtUrl}" alt="" onerror="this.remove()">`
-    : '';
+  const artEl = document.getElementById('hero-art-' + idx);
+  if (artEl && artEl.dataset.url !== (heroArtUrl || '')) {
+    artEl.dataset.url = heroArtUrl || '';
+    artEl.innerHTML = heroArtUrl ? `<img src="${heroArtUrl}" alt="" onerror="this.remove()">` : '';
+  }
+
+  /* icono de la habilidad de héroe: imagen propia (power.iconImg) o su emoji */
+  const pw = h.def.power;
+  const powIco = pw.iconImg
+    ? `<img class="power-ico-img" src="${pw.iconImg}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'power-ico',textContent:'${pw.icon}'}))">`
+    : `<span class="power-ico">${pw.icon}</span>`;
 
   /* elementos superpuestos al arte del tablero (posiciones en style.css) */
   hud.innerHTML = `
-    <div class="portrait ${heroCanAtk ? 'can-attack' : ''}" data-target="hero:${idx}" data-hero="${idx}">${heroArt}</div>
+    <div class="portrait ${heroCanAtk ? 'can-attack' : ''}" data-target="hero:${idx}" data-hero="${idx}"></div>
     <div class="hp-gem">${h.hp}</div>
     <div class="hero-name">${h.def.name}</div>
     <div class="power ${powerUsable ? 'usable' : ''} ${h.powerUsed ? 'used' : ''}"
-         title="${h.def.power.name} (${h.def.power.cost}): ${h.def.power.desc}"></div>
+         title="${pw.name} (${pw.cost}): ${pw.desc}">${powIco}</div>
+    <div class="power-cost">${pw.cost}</div>
     <div class="mana-zone">
       <span class="mana-text">${p.mana}/${p.maxMana}</span>
       <span class="mana-gems">${gems.join('')}</span>
@@ -593,6 +603,15 @@ function flushFx() {
         }
         break;
       }
+      case 'buff': {
+        const el = elForEntity(data.minion);
+        if (el) {
+          const [x, y] = centerOf(el);
+          vfxBurst(x, y, ['⚔️', '💢'], 5, { dist: 28, size: 18 });
+        }
+        Sfx.play('attack');
+        break;
+      }
       case 'encane': {
         const [x, y] = heroPoint(data.owner);
         vfxBurst(x, y, ['🔥', '💢'], 6, { dist: 45 });
@@ -722,6 +741,11 @@ function fitStage() {
   if (ss) {
     const s4 = Math.min(window.innerWidth / 1540, window.innerHeight / 1021);
     ss.style.transform = `translate(-50%, -50%) scale(${s4})`;
+  }
+  const sts = $('#story-stage');
+  if (sts) {
+    const s5 = Math.min(window.innerWidth / 966, window.innerHeight / 1080);
+    sts.style.transform = `translate(-50%, -50%) scale(${s5})`;
   }
 }
 
@@ -1000,21 +1024,48 @@ function showEnd(winner) {
   const text = $('#end-text');
   const reward = awardCoins(winner);
   $('#end-reward').innerHTML = `+${reward} 💊 &nbsp;·&nbsp; total: ${Save.coins} 💊`;
+
+  const mp = typeof MP !== 'undefined' && (MP.active || MP.role);
+  const enemy = (!mp && typeof activeStoryEnemy !== 'undefined' && activeStoryEnemy) ? activeStoryEnemy : null;
+  const rivalName = enemy ? enemy.nombre.replace(/\s«.*»/, '') : 'Tu rival';
+  const contBtn = $('#btn-continue-story');
+  const restartBtn = $('#btn-restart');
+  let showContinue = false;
+
   if (winner === 0) {
     title.textContent = '🏆 ¡VICTORIA!';
     title.className = 'logo win';
-    text.innerHTML = 'El Director sonríe mientras firma el ingreso de Nikuman.<br>El Sanatorio San José tiene un paciente nuevo... y sus 5 gatos de visita los domingos.';
+    let msg = enemy ? enemy.victoria
+      : 'El Director sonríe mientras firma el ingreso de Nikuman.';
+    if (enemy && typeof storyDefeat === 'function') {
+      const wasNew = !Save.story.defeated.includes(enemy.id);
+      storyDefeat(enemy.id);
+      if (wasNew && enemy.desbloquea && SETS[enemy.desbloquea]) {
+        msg += `<br><span class="unlock-note">🔓 Mazo desbloqueado: <b>${SETS[enemy.desbloquea].name}</b></span>`;
+      }
+      const done = storyChapterComplete();
+      if (done) {
+        title.textContent = '👑 ¡CAPÍTULO COMPLETO!';
+        msg += '<br><span class="unlock-note">Has completado <b>«Ingreso en el Manicomio»</b>. Todo el grupo, ingresado.</span>';
+      } else {
+        showContinue = true;
+      }
+    }
+    text.innerHTML = msg;
     Sfx.play('win');
   } else if (winner === 1) {
     title.textContent = '💀 DERROTA';
     title.className = 'logo lose';
-    text.innerHTML = 'La Mano Negra te señala. Cauntu ya prepara la mesa de operaciones...<br>El Sanatorio cierra. De momento.';
+    text.innerHTML = `${rivalName} te gana la partida. El ingreso tendrá que esperar...<br>Vuelve a intentarlo cuando quieras.`;
     Sfx.play('lose');
   } else {
     title.textContent = '🤯 DOBLE K.O.';
     title.className = 'logo';
-    text.innerHTML = 'El manicomio se queda sin director y sin pullador. Mario Matas se autoproclama nuevo líder.';
+    text.innerHTML = 'Ambos caéis a la vez. El ingreso queda en tablas: repite la partida.';
   }
+
+  if (contBtn) contBtn.style.display = showContinue ? '' : 'none';
+  if (restartBtn) restartBtn.style.display = showContinue ? 'none' : '';
   box.classList.remove('hidden');
   fitOverlays();
 }
@@ -1171,11 +1222,15 @@ function startGame() {
   drag = null;
   pendingPower = false;
   const play = activePlay();
-  G = newGame(play.cards, play.hero);
+  /* rival: el enemigo del modo historia (o Nikuman por defecto) */
+  const enemy = (typeof activeStoryEnemy !== 'undefined' && activeStoryEnemy) ? activeStoryEnemy : null;
+  const oppDeck = enemy ? DECKS[enemy.deck] : DECKS.manonegra;
+  const oppHero = enemy ? enemy.hero : 'nikuman';
+  G = newGame(play.cards, play.hero, oppDeck, oppHero);
   /* modo historia: la intro arranca ANTES del primer render para que
      las cartas iniciales no se vean ni se animen todavía */
-  const conIntro = typeof HISTORIA !== 'undefined' && HISTORIA.intro && HISTORIA.intro.length > 0
-    && isValidDeck(activeDeck().cards);
+  const pasos = enemy ? enemy.intro : null;
+  const conIntro = pasos && pasos.length > 0 && isValidDeck(activeDeck().cards);
   if (conIntro) introActive = true;
   render();
   if (!isValidDeck(activeDeck().cards)) {
@@ -1183,7 +1238,7 @@ function startGame() {
     return;
   }
   if (conIntro) {
-    runIntro();
+    runIntro(pasos);
   } else {
     banner('¡Tu turno! ' + (play.hero === 'kevin' ? '🦨' : '🏥'));
   }

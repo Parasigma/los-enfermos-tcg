@@ -26,7 +26,12 @@ document.addEventListener('DOMContentLoaded', () => {
   /* menú principal */
   document.getElementById('btn-play').addEventListener('click', () => {
     Sfx.ensure(); // desbloquea el audio con el gesto del usuario
-    startGame();
+    activeStoryEnemy = null;
+    showScreen('story-screen');
+  });
+  document.getElementById('btn-story-back').addEventListener('click', () => {
+    activeStoryEnemy = null;
+    showScreen('main-menu');
   });
   document.getElementById('btn-decks').addEventListener('click', () => showScreen('deck-screen'));
   document.getElementById('btn-shop').addEventListener('click', () => showScreen('shop-screen'));
@@ -85,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* jugar online */
   document.getElementById('btn-online').addEventListener('click', () => {
+    activeStoryEnemy = null;
     showScreen('online-screen');
     mpUpdateOnlineUI();
   });
@@ -103,7 +109,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('btn-to-menu').addEventListener('click', () => {
     if (MP.active || MP.role) { mpLeave(); return; }
+    activeStoryEnemy = null;
     showScreen('main-menu');
+  });
+  /* modo historia: continuar al siguiente enemigo (revela con animación) */
+  document.getElementById('btn-continue-story').addEventListener('click', () => {
+    activeStoryEnemy = null;
+    document.getElementById('end-overlay').classList.add('hidden');
+    showScreen('story-screen');
   });
 
   /* modo historia: saltar la intro */

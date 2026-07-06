@@ -18,6 +18,12 @@
 
   <!-- Escenario de proporción fija (1672x941) escalado a la ventana -->
   <div id="stage">
+    <!-- ilustraciones de los héroes DETRÁS del marco (asoman por los
+         círculos transparentes de fondo_batalla.png) -->
+    <div id="hero-art-1" class="hero-art"></div>
+    <div id="hero-art-0" class="hero-art"></div>
+    <!-- marco del tablero pintado, ENCIMA de las ilustraciones -->
+    <div id="board-frame"></div>
     <div id="enemy-hand" class="hand-row"></div>
     <div id="enemy-hud" class="hud"></div>
     <div id="enemy-board" class="board-row"></div>
@@ -96,7 +102,7 @@
   <div id="main-menu" class="overlay">
     <div id="menu-stage">
       <div class="menu-buttons-panel">
-        <button id="btn-play" class="img-btn">⚔️ Partida de 1 Jugador</button>
+        <button id="btn-play" class="img-btn">⚔️ Modo Historia</button>
         <button id="btn-online" class="img-btn">🌐 Jugar Online</button>
         <button id="btn-decks" class="img-btn">🃏 Administrar Mazo</button>
         <button id="btn-shop" class="img-btn">🛒 Tienda de Mazos</button>
@@ -104,7 +110,19 @@
         <div class="coins-badge">💊 <span id="menu-coins">0</span> pastillas</div>
         <div id="menu-profile" class="profile-badge"></div>
       </div>
-      <div class="version-tag">v1.3</div>
+      <div class="version-tag">v1.4</div>
+    </div>
+  </div>
+
+  <!-- MODO HISTORIA: mapa de enemigos (marco pintado en assets/fondo_menu_historia.png;
+       la lista de enemigos va DETRÁS del marco y asoma por la ventana transparente) -->
+  <div id="story-screen" class="overlay hidden">
+    <div id="story-stage">
+      <div id="story-list" class="story-list"></div>
+      <div id="story-frame"></div>
+      <div id="story-chapter"></div>
+      <div id="story-lema"></div>
+      <button id="btn-story-back" class="painted-btn" aria-label="Volver"></button>
     </div>
   </div>
 
@@ -206,6 +224,7 @@
       <p id="end-text" class="lore"></p>
       <p id="end-reward" class="coins-badge"></p>
       <div class="menu-buttons">
+        <button id="btn-continue-story" class="img-btn" style="display:none">▶️ Continuar historia</button>
         <button id="btn-restart" class="img-btn">🔁 Jugar otra vez</button>
         <button id="btn-to-menu" class="img-btn">🏠 Menú principal</button>
       </div>

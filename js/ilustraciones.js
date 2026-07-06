@@ -91,8 +91,14 @@ const ILUSTRACIONES = {
   nikuborg:       'assets/ilustraciones/nikuborg.png',       // Niku-Borg 9000 (ficha)
   cerveza:        'assets/ilustraciones/cerveza.png',        // Cerveza Gratis (moneda)
 
-  /* ========== RETRATOS DE HÉROE (círculo del tablero) ========== */
-  hero_nikuman:   'assets/ilustraciones/nikuman.png',        // Nikuman, héroe rival (arriba)
-  hero_director:  'assets/ilustraciones/rafael.png',         // Rafael Rovira, tu héroe (abajo)
-  hero_kevin:     'assets/ilustraciones/kevin.png'           // Kevin, héroe jugable (baraja Mofeta)
+  /* ========== RETRATOS DE HÉROE (círculo del tablero) ==========
+     Cada héroe rival del modo historia usa la ilustración de su
+     personaje (la carta legendaria / cabecilla de su mazo). */
+  hero_director:    'assets/ilustraciones/rafael.png',    // Rafael Rovira, tu héroe (abajo)
+  hero_nikuman:     'assets/ilustraciones/nikuman.png',   // Nikuman, La Mano Negra
+  hero_kevin:       'assets/ilustraciones/keykebab.png',  // Kevin, el Mofeta (Rey del Kebab)
+  hero_marioHero:   'assets/ilustraciones/mario.png',     // Mario Matas, el Cabecilla
+  hero_jorgeHero:   'assets/ilustraciones/monzo.png',     // Jorge Monzo, el Ventosero
+  hero_victorHero:  'assets/ilustraciones/victor.png',    // Víctor Lamas, el Motero
+  hero_rabascoHero: 'assets/ilustraciones/rabasco.png'    // Rabasco, el Cornudo
 };

@@ -13,9 +13,11 @@ const HEROES = {
     title: 'Fundador del Sanatorio San José',
     portrait: '🧑‍⚕️',
     power: {
+      /* el médico: cura y estabiliza a sus pacientes */
       name: 'Terapia Intensiva', cost: 2, icon: '💊', target: 'any',
       desc: 'Restaura 3 de salud a cualquier objetivo.',
-      use(g, p, t) { heal(g, t, 3); }
+      use(g, p, t) { heal(g, t, 3); },
+      aiTarget(g, p) { return p.hero; }
     }
   },
   nikuman: {
@@ -24,9 +26,14 @@ const HEROES = {
     title: 'El Pullador Absoluto (Kuroi Te)',
     portrait: '🤓',
     power: {
-      name: 'Pulla Certera', cost: 2, icon: '🖤', target: 'any',
-      desc: 'Inflige 1 de daño a cualquier objetivo.',
-      use(g, p, t) { dealDamage(g, t, 1); }
+      /* el pullador: no ataca, DESMORALIZA — baja al que destaca */
+      name: 'Kuroi Te', cost: 2, icon: '🖤', target: 'enemyMinion',
+      desc: 'La Mano Negra pulla a un esbirro enemigo: le resta 2 de ataque (mínimo 0).',
+      use(g, p, t) { if (t && !t.isHero) t.attack = Math.max(0, t.attack - 2); },
+      aiTarget(g, p) {
+        const opp = g.players[1 - p.idx];
+        return opp.board.slice().sort((a, b) => b.attack - a.attack)[0] || null;
+      }
     }
   },
   kevin: {
@@ -35,9 +42,15 @@ const HEROES = {
     title: 'El Devorador de Kebabs',
     portrait: '🦨',
     power: {
+      /* el mofeta: impregna de Olor a Peo (daño por turno) */
       name: 'Pedete Sorpresa', cost: 2, icon: '💨', target: 'any',
       desc: 'Inflige 1 de daño. Si es un esbirro, le aplica Olor a Peo (recibe 1 de daño al final de cada turno de su dueño).',
-      use(g, p, t) { dealDamage(g, t, 1); if (!t.isHero) applyStench(g, t); }
+      use(g, p, t) { dealDamage(g, t, 1); if (!t.isHero) applyStench(g, t); },
+      aiTarget(g, p) {
+        const opp = g.players[1 - p.idx];
+        const sano = opp.board.filter(m => !m.stench).sort((a, b) => b.health - a.health);
+        return sano[0] || opp.hero;
+      }
     }
   },
   marioHero: {
@@ -46,9 +59,57 @@ const HEROES = {
     title: 'Cerebro de la Fuga del Manicomio',
     portrait: '🎭',
     power: {
+      /* el liante: trapichea cartas (roba y descarta para los Encanes) */
       name: 'Trapicheo', cost: 2, icon: '🎭', target: null,
       desc: 'Roba una carta y luego descarta una al azar (alimenta los Encanes).',
-      use(g, p) { drawCards(g, p, 1); discardRandom(g, p, 1); }
+      use(g, p) { drawCards(g, p, 1); discardRandom(g, p, 1); },
+      aiWants(g, p) { return p.hand.length > 0; }
+    }
+  },
+  /* --- héroes RIVALES del modo historia (aún sin mazo propio: usan
+         mazos existentes como placeholder hasta que se diseñen) --- */
+  jorgeHero: {
+    id: 'jorgeHero',
+    name: 'Jorge Monzo «El Ventosero»',
+    title: 'Pedos que tumban a un caballo',
+    portrait: '💨',
+    power: {
+      /* pedos que hacen saltar las alarmas: daño a TODA la sala */
+      name: 'Ventosidad Letal', cost: 2, icon: '💨', target: null,
+      desc: 'Suelta un cuesco que hace saltar las alarmas: inflige 1 de daño a TODOS los esbirros enemigos.',
+      use(g, p) { const opp = g.players[1 - p.idx]; for (const m of [...opp.board]) dealDamage(g, m, 1); },
+      aiWants(g, p) { return g.players[1 - p.idx].board.length > 0; }
+    }
+  },
+  victorHero: {
+    id: 'victorHero',
+    name: 'Víctor Lamas «El Motero»',
+    title: 'Calvo, pero con dos ruedas',
+    portrait: '🏍️',
+    power: {
+      /* arranca la moto: acelera a un aliado (le da caña) */
+      name: 'Acelerón', cost: 2, icon: '🏍️', target: 'friendlyMinion',
+      desc: 'Arranca la moto: un esbirro aliado gana +2 de ataque de forma permanente.',
+      use(g, p, t) { if (t && !t.isHero) { t.attack += 2; fx('buff', { minion: t }); } },
+      aiTarget(g, p) { return p.board.slice().sort((a, b) => b.attack - a.attack)[0] || null; }
+    }
+  },
+  rabascoHero: {
+    id: 'rabascoHero',
+    name: 'Rabasco «El Cornudo»',
+    title: 'Picado y con el cuerno afilado',
+    portrait: '🐏',
+    power: {
+      /* embiste con el cuerno: golpe fuerte a un solo objetivo */
+      name: 'Cornada', cost: 2, icon: '🐏', target: 'enemyMinion',
+      desc: 'Embiste con el cuerno afilado: inflige 3 de daño a un esbirro enemigo.',
+      use(g, p, t) { dealDamage(g, t, 3); },
+      aiTarget(g, p) {
+        const opp = g.players[1 - p.idx];
+        const b = opp.board.slice();
+        const remata = b.filter(m => m.health <= 3).sort((a, b) => b.attack - a.attack);
+        return remata[0] || b.sort((a, b) => b.attack - a.attack)[0] || null;
+      }
     }
   }
 };

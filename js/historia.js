@@ -23,28 +23,117 @@
    (p.ej. HISTORIA.mision2 = [...]) y ya los iremos conectando.
    ========================================================= */
 
-const HISTORIA = {
+const HISTORIA = {};
 
-  intro: [
+/* =========================================================
+   CAPÍTULO 1 — «INGRESO EN EL MANICOMIO»
+   ---------------------------------------------------------
+   Rafael recorre la ciudad OBLIGANDO, uno a uno, a los
+   enfermos del grupo a ingresar en el Sanatorio San José.
+
+   Cada enemigo se enfrenta EN ORDEN. Al vencerlo:
+   - queda marcado como DERROTADO
+   - si tiene `desbloquea`, ese mazo se añade a tu colección
+   - se revela el SIGUIENTE enemigo (hasta entonces es un ???)
+
+   Campos de cada enemigo:
+   - id:        identificador interno (no repetir)
+   - nombre:    se muestra al revelarlo / derrotarlo
+   - hero:      id del héroe rival (de HEROES en cards.js)
+   - deck:      id del mazo que juega (de DECKS en cards.js)
+   - desbloquea:id del set que te llevas al vencerlo (o null)
+   - emoji:     icono de reserva si no hay ilustración
+   - foto:      ilustración del retrato (opcional)
+   - jefe:      true en el boss final del capítulo
+   - reto:      frase corta en la ficha del enemigo
+   - intro:     diálogo antes de la partida (mismo formato de
+                siempre: {quien:'yo'|'rival', espera, duracion, texto})
+   - victoria:  texto que aparece al ganarle
+   ========================================================= */
+
+HISTORIA.capitulo1 = {
+  id: 'ingreso',
+  numero: 'CAPÍTULO 1',
+  nombre: 'Ingreso en el Manicomio',
+  lema: 'Rafael sale a la calle a meter a los enfermos, uno a uno, en el sanatorio.',
+  enemigos: [
     {
-      quien: 'rival', espera: 1.2, duracion: 4.5,
-      texto: '¿Otra vez tú, <b>Fiti</b>? Tu manicomio de juguete no puede conmigo. Lo dice el <b>TOP 1 del ranking</b>.'
+      id: 'nikuman', nombre: 'Nikuman «La Mano Negra»',
+      hero: 'nikuman', deck: 'manonegra', desbloquea: 'manonegra',
+      emoji: '🤓', foto: 'assets/ilustraciones/nikuman.png',
+      reto: 'El pullador del TOP 1. Ojo con el yogur de piña.',
+      intro: [
+        { quien: 'rival', espera: 1.2, duracion: 4.5, texto: '¿Otra vez tú, <b>Fiti</b>? Tu manicomio de juguete no puede conmigo. Lo dice el <b>TOP 1 del ranking</b>.' },
+        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Nikuman... tu habitación está lista. Acolchada, tranquila, y con visita de tus cinco gatos los domingos.' },
+        { quien: 'rival', espera: 0.7, duracion: 5, texto: 'Ni se te ocurra servir <b>yogur de piña</b> en ese antro... ¿EH? ¿POR QUÉ SONRÍES? ¡Ya me he encanado!' },
+        { quien: 'yo', espera: 0.6, duracion: 3.5, texto: 'Celadores, preparen el ingreso. <i>Esto se resuelve con cartas.</i>' }
+      ],
+      victoria: 'El Director firma el ingreso de Nikuman. Un paciente nuevo... y sus 5 gatos de visita los domingos.'
     },
     {
-      quien: 'yo', espera: 0.7, duracion: 4.5,
-      texto: 'Nikuman... tu habitación está lista. Acolchada, tranquila, y con visita de tus cinco gatos los domingos.'
+      id: 'kevin', nombre: 'Kevin «El Mofeta»',
+      hero: 'kevin', deck: 'mofeta', desbloquea: 'mofeta',
+      emoji: '🦨', foto: 'assets/ilustraciones/keykebab.png',
+      reto: 'Huele a mofeta con gastroenteritis. Trae mascarilla.',
+      intro: [
+        { quien: 'rival', espera: 1, duracion: 4.5, texto: '¿Ingresar YO? Acabo de pedir <b>tres kebabs</b>. Es un NO rotundo, cacho lacón.' },
+        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Kevin, hueles a mofeta con gastroenteritis. En el sanatorio hay ventilación... o la habrá.' },
+        { quien: 'rival', espera: 0.7, duracion: 4.5, texto: 'Te voy a soltar un <b>pedo proteico</b> que te manda al turno 10. <i>*PFFFFFF*</i>' },
+        { quien: 'yo', espera: 0.6, duracion: 3.5, texto: 'Celadores, MASCARILLAS. Vamos a por él.' }
+      ],
+      victoria: 'Kevin entra en el sanatorio dejando una estela aromática inolvidable.'
     },
     {
-      quien: 'rival', espera: 0.7, duracion: 5,
-      texto: 'Ni se te ocurra servir <b>yogur de piña</b> en ese antro... ¿EH? ¿POR QUÉ SONRÍES? ¡Ya me he encanado!'
+      id: 'jorge', nombre: 'Jorge Monzo «El Ventosero»',
+      hero: 'jorgeHero', deck: 'mofeta', desbloquea: null,
+      emoji: '💨', foto: 'assets/ilustraciones/monzo.png',
+      reto: 'Sus cuescos hacen saltar las alarmas de incendios.',
+      intro: [
+        { quien: 'rival', espera: 1, duracion: 4.5, texto: 'Monzo presente. Mis cuescos ya han hecho saltar <b>tres alarmas de incendios</b>.' },
+        { quien: 'yo', espera: 0.7, duracion: 4, texto: 'Por eso mismo tengo lista una sala insonorizada para ti, Jorge.' }
+      ],
+      victoria: 'Jorge Monzo ingresa. La sala insonorizada ya vibra por dentro.'
     },
     {
-      quien: 'yo', espera: 0.6, duracion: 3.5,
-      texto: 'Celadores, preparen el ingreso. <i>Esto se resuelve con cartas.</i>'
+      id: 'victor', nombre: 'Víctor Lamas «El Motero»',
+      hero: 'victorHero', deck: 'manonegra', desbloquea: null,
+      emoji: '🏍️', foto: 'assets/ilustraciones/victor.png',
+      reto: 'Calvo, escurridizo y con la moto siempre en marcha.',
+      intro: [
+        { quien: 'rival', espera: 1, duracion: 4.5, texto: '¿Encerrarme? Me piro en la <b>moto</b> antes de que parpadees, Fiti.' },
+        { quien: 'yo', espera: 0.7, duracion: 4, texto: 'He puesto un badén en la puerta y un casco con correa. Baja de ahí, Víctor.' }
+      ],
+      victoria: 'Víctor pierde las llaves de la moto en recepción. Ingreso completado.'
+    },
+    {
+      id: 'rabasco', nombre: 'Rabasco «El Cornudo»',
+      hero: 'rabascoHero', deck: 'manonegra', desbloquea: null,
+      emoji: '🐏', foto: 'assets/ilustraciones/rabasco.png',
+      reto: 'Picadísimo y con el cuerno de la frente bien afilado.',
+      intro: [
+        { quien: 'rival', espera: 1, duracion: 4.5, texto: 'Estoy muy <b>picado</b>, Fiti. Y con el cuerno bien afilado. No me toques.' },
+        { quien: 'yo', espera: 0.7, duracion: 4, texto: 'Un cuerno se lima en un momento. Pasa por recepción, Rabasco.' }
+      ],
+      victoria: 'A Rabasco le liman el cuerno en admisiones. Adentro con él.'
+    },
+    {
+      id: 'mario', nombre: 'Mario Matas «El Cabecilla»',
+      hero: 'marioHero', deck: 'fuga', desbloquea: 'fuga',
+      emoji: '🎭', foto: 'assets/ilustraciones/mario.png', jefe: true,
+      reto: 'BOSS FINAL. El cerebro de la fuga. El ingreso más difícil.',
+      intro: [
+        { quien: 'rival', espera: 1.2, duracion: 5, texto: 'Así que has llegado hasta mí. Yo organicé la <b>fuga</b>, y yo decido quién ingresa aquí.' },
+        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Mario Matas. El cabecilla. Contigo se cierra el capítulo del ingreso.' },
+        { quien: 'rival', espera: 0.7, duracion: 4.5, texto: '¿Capítulo? Esto es una <b>FUGA</b> en marcha: trapicheo, movilidad y puro caos.' },
+        { quien: 'yo', espera: 0.6, duracion: 3.5, texto: 'Traed la camisa de fuerza grande. Esta la firmo yo mismo.' }
+      ],
+      victoria: 'Mario Matas, el cabecilla, cae. El capítulo «Ingreso en el Manicomio» queda cerrado.'
     }
   ]
-
 };
+
+/* enemigo que se va a enfrentar ahora mismo (lo fija el mapa de historia) */
+let activeStoryEnemy = null;
 
 /* =========================================================
    MOTOR DEL MODO HISTORIA (no hace falta tocar nada de aquí)
@@ -118,7 +207,7 @@ function fadeInGame() {
 }
 
 /* intro completa: fundido + diálogos + reparto de cartas */
-async function runIntro() {
+async function runIntro(pasos) {
   introActive = true;
   introSkip = false;
   busy = true;
@@ -127,7 +216,7 @@ async function runIntro() {
   const skipBtn = document.getElementById('intro-skip');
   skipBtn.classList.remove('hidden');
   await introWait(1100);
-  await playHistoria(HISTORIA.intro);
+  await playHistoria(pasos || []);
   skipBtn.classList.add('hidden');
   introActive = false;
   busy = false;

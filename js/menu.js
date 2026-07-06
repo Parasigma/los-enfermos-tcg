@@ -24,6 +24,7 @@ const Save = {
   packsDay: '',
   cardCollection: {},           // { cardId: copias conseguidas en sobres }
   cardVariants: {},             // { cardId: 'brillante'|'dorada'|'alterada'|'foil' }
+  story: { defeated: [], revealed: [] }, // modo historia: enemigos vencidos / revelados
   settings: { sound: true, fastAI: false, showLog: true }
 };
 
@@ -128,6 +129,9 @@ function loadSave() {
       if (typeof s.packsDay === 'string') Save.packsDay = s.packsDay;
       if (s.cardCollection && typeof s.cardCollection === 'object') Save.cardCollection = s.cardCollection;
       if (s.cardVariants && typeof s.cardVariants === 'object') Save.cardVariants = s.cardVariants;
+      if (s.story && Array.isArray(s.story.defeated) && Array.isArray(s.story.revealed)) {
+        Save.story = { defeated: s.story.defeated.slice(), revealed: s.story.revealed.slice() };
+      }
       if (s.settings) Object.assign(Save.settings, s.settings);
 
       /* migración de guardados antiguos (mazo único o mazo por héroe) */
@@ -253,7 +257,7 @@ function applySettings() {
 
 /* ---------- navegación entre pantallas ---------- */
 
-const SCREENS = ['register-screen', 'main-menu', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'end-overlay'];
+const SCREENS = ['register-screen', 'main-menu', 'story-screen', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'end-overlay'];
 
 function showScreen(id) {
   for (const s of SCREENS) {
@@ -270,6 +274,7 @@ function showScreen(id) {
     if (typeof shopShowTab === 'function') shopShowTab('decks');
   }
   if (id === 'deck-screen') openDeckEditor();
+  if (id === 'story-screen') renderStoryScreen();
   if (id === 'settings-screen') renderSettings();
   if (typeof fitOverlays === 'function') fitOverlays();
 }
@@ -515,55 +520,9 @@ function renderDeckEditor() {
     col.appendChild(wrap);
   }
 
-  /* cartas de barajas NO compradas (y no conseguidas en sobres):
-     boca abajo, giran con el ratón */
-  const owned = new Set(collectionIds());
-  const locked = [];
-  for (const key of Object.keys(SETS)) {
-    if (!Save.ownedSets.includes(key)) {
-      for (const id of SETS[key].cards) {
-        if (!owned.has(id)) locked.push({ id, set: key });
-      }
-    }
-  }
-  locked.sort((a, b) =>
-    (CARDS[a.id].cost - CARDS[b.id].cost) || CARDS[a.id].name.localeCompare(CARDS[b.id].name));
-  for (const { id, set } of locked) {
-    const wrap = document.createElement('div');
-    wrap.className = 'col-card locked';
-    wrap.title = `Carta de «${SETS[set].name}» — cómprala en la tienda`;
-    const fake = { def: CARDS[id], id, costMod: 0, uid: 'lock_' + id };
-    const face = cardEl(fake);
-    face.classList.remove('hand-card');
-    wrap.innerHTML = `
-      <div class="flip3d">
-        <div class="flip-inner">
-          <div class="flip-back card-reverse"></div>
-          <div class="flip-front"></div>
-        </div>
-      </div>
-      <div class="col-count">🔒 ${SETS[set].name}</div>`;
-    wrap.querySelector('.flip-front').appendChild(face);
-    /* clic: a la tienda · doble clic o pulsación larga: inspeccionar */
-    let lockTimer = null;
-    wrap.addEventListener('click', () => {
-      if (wrap.__lpFired) { wrap.__lpFired = false; return; }
-      if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; return; }
-      lockTimer = setTimeout(() => {
-        lockTimer = null;
-        hidePreview();
-        showScreen('shop-screen');
-      }, 230);
-    });
-    wrap.addEventListener('dblclick', () => {
-      if (lockTimer) { clearTimeout(lockTimer); lockTimer = null; }
-      openCardInspector(fake);
-    });
-    addLongPress(wrap, () => openCardInspector(fake));
-    wrap.addEventListener('mouseenter', () => showPreviewCard(fake));
-    wrap.addEventListener('mouseleave', hidePreview);
-    col.appendChild(wrap);
-  }
+  /* Las cartas de mazos/expansiones que aún no tienes NO se muestran:
+     así se mantiene el misterio de la historia. Aparecen en tu
+     colección solo cuando desbloqueas ese mazo (o lo sacas en sobre). */
 
   /* mazo (derecha): filas agrupadas, clic para quitar */
   const list = document.getElementById('deck-list');
@@ -629,10 +588,170 @@ function saveDeck() {
 
 /* ---------- tienda ---------- */
 
+/* =========================================================
+   MODO HISTORIA — MAPA DE ENEMIGOS DEL CAPÍTULO
+   ========================================================= */
+
+function storyEnemies() {
+  return (typeof HISTORIA !== 'undefined' && HISTORIA.capitulo1)
+    ? HISTORIA.capitulo1.enemigos : [];
+}
+
+/* sets que SOLO se consiguen jugando la historia (no en la tienda) */
+function storyUnlockSets() {
+  const set = new Set();
+  for (const e of storyEnemies()) if (e.desbloquea) set.add(e.desbloquea);
+  return set;
+}
+
+/* índice del enemigo que toca ahora (el primero no derrotado); -1 si acabado */
+function storyCurrentIndex() {
+  const en = storyEnemies();
+  for (let i = 0; i < en.length; i++) {
+    if (!Save.story.defeated.includes(en[i].id)) return i;
+  }
+  return -1;
+}
+
+function storyChapterComplete() { return storyCurrentIndex() === -1; }
+
+/* ¿conocemos ya la identidad de este enemigo? (el 1º siempre; los
+   derrotados y los ya revelados también) */
+function storyIsRevealed(id) {
+  const en = storyEnemies();
+  if (en.length && en[0].id === id) return true;
+  return Save.story.defeated.includes(id) || Save.story.revealed.includes(id);
+}
+
+/* marcar un enemigo como derrotado y desbloquear su mazo */
+function storyDefeat(id) {
+  if (!Save.story.defeated.includes(id)) Save.story.defeated.push(id);
+  const e = storyEnemies().find(x => x.id === id);
+  if (e && e.desbloquea && !Save.ownedSets.includes(e.desbloquea)) {
+    Save.ownedSets.push(e.desbloquea);
+  }
+  persistSave();
+}
+
+/* empezar la batalla contra un enemigo concreto */
+function startStoryBattle(id) {
+  const e = storyEnemies().find(x => x.id === id);
+  if (!e) return;
+  activeStoryEnemy = e;
+  startGame();
+}
+
+function renderStoryScreen() {
+  const cap = (typeof HISTORIA !== 'undefined' && HISTORIA.capitulo1) ? HISTORIA.capitulo1 : null;
+  const list = document.getElementById('story-list');
+  if (!cap || !list) return;
+
+  /* el título va PINTADO en el marco; aquí la pastilla con el nº de
+     capítulo y, debajo, el lema en la placa de pergamino */
+  const chapEl = document.getElementById('story-chapter');
+  if (chapEl) chapEl.textContent = cap.numero || '';
+  const lemaEl = document.getElementById('story-lema');
+  if (lemaEl) lemaEl.textContent = cap.lema;
+
+  const enemies = cap.enemigos;
+  const curIdx = storyCurrentIndex();
+  list.innerHTML = '';
+
+  enemies.forEach((e, i) => {
+    const defeated = Save.story.defeated.includes(e.id);
+    const isCurrent = i === curIdx;
+    const known = defeated || isCurrent;           // solo el actual y los vencidos se conocen
+    const revealed = storyIsRevealed(e.id);
+
+    const tile = document.createElement('div');
+    tile.className = 'story-enemy' + (defeated ? ' beaten' : isCurrent ? ' current' : ' locked-enemy');
+    tile.dataset.idx = i;
+
+    /* retrato dentro del recuadro recortado del plato; ??? si no lo conocemos */
+    const portrait = known
+      ? (e.foto
+          ? `<img src="${e.foto}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'se-emoji',textContent:'${e.emoji}'}))">`
+          : `<span class="se-emoji">${e.emoji}</span>`)
+      : `<span class="se-emoji">❓</span>`;
+    const name = known ? e.nombre : '??? Paciente sin identificar';
+    const reto = known ? e.reto : 'Vence al paciente anterior para descubrir quién es el siguiente en ingresar...';
+    const bossTag = (known && e.jefe) ? '<span class="se-boss">BOSS FINAL</span>' : '';
+
+    /* botón de acción sobre el recuadro verde (espadas) del plato */
+    let fightBtn = '';
+    let stamp = '';
+    if (defeated) {
+      fightBtn = `<button class="se-fight rematch" data-fight="${e.id}" title="Repetir el combate"><span class="se-fl">REPETIR</span></button>`;
+      stamp = '<div class="se-stamp">DERROTADO</div>';
+    } else if (isCurrent) {
+      fightBtn = `<button class="se-fight active" data-fight="${e.id}" title="¡Obligar a ingresar!"><span class="se-fl">LUCHAR</span></button>`;
+    }
+
+    tile.innerHTML = `
+      <div class="se-flip">
+        <div class="se-face se-front">
+          <div class="se-portrait">${portrait}</div>
+          <div class="se-info">
+            <div class="se-name">${name} ${bossTag}</div>
+            <div class="se-reto">${reto}</div>
+          </div>
+          ${fightBtn}
+          ${stamp}
+        </div>
+        <div class="se-face se-back">
+          <span class="se-qmark">❓</span>
+          <span class="se-num">Paciente nº ${i + 1}</span>
+        </div>
+      </div>`;
+
+    /* enemigos aún no revelados: la ficha se ve por el dorso (misterio) */
+    if (!revealed) tile.querySelector('.se-flip').classList.add('flipped');
+
+    list.appendChild(tile);
+  });
+
+  /* botones de luchar / repetir */
+  list.querySelectorAll('.se-fight').forEach(b =>
+    b.addEventListener('click', () => startStoryBattle(b.dataset.fight)));
+
+  /* si el enemigo ACTUAL aún no se ha revelado: animación «girar y mostrar» */
+  if (curIdx >= 0 && !storyIsRevealed(enemies[curIdx].id)) {
+    const cur = enemies[curIdx];
+    const tile = list.querySelector(`.story-enemy[data-idx="${curIdx}"]`);
+    const flip = tile.querySelector('.se-flip');
+    tile.classList.add('revealing');
+    if (typeof Sfx !== 'undefined') Sfx.play('draw');
+    setTimeout(() => {
+      flip.classList.remove('flipped');   // gira a la cara frontal
+      if (typeof Sfx !== 'undefined') Sfx.play('win');
+      if (typeof vfxBurst === 'function') {
+        const r = tile.getBoundingClientRect();
+        vfxBurst(r.left + r.width / 2, r.top + r.height / 2, ['✨', '⭐', '💫'], 12, { dist: 90 });
+      }
+      Save.story.revealed.push(cur.id);
+      persistSave();
+      setTimeout(() => tile.classList.remove('revealing'), 800);
+    }, 650);
+  }
+
+  if (typeof fitOverlays === 'function') fitOverlays();
+}
+
 function renderShop() {
   document.getElementById('shop-coins').textContent = Save.coins;
 
-  const pages = Math.max(1, Math.ceil(SHOP_ITEMS.length / 3));
+  /* los MAZOS de los pacientes no se compran: se desbloquean en la
+     historia. En la tienda solo se venden EXPANSIONES; los mazos
+     bloqueados se agrupan en una única ficha misteriosa. */
+  const storySets = storyUnlockSets();
+  const entries = [];
+  for (const item of SHOP_ITEMS) {
+    if (!storySets.has(item.set)) entries.push({ type: 'buy', item });
+  }
+  const lockedMazos = [...storySets].some(s => !Save.ownedSets.includes(s));
+  if (lockedMazos) entries.push({ type: 'locked' });
+
+  const pages = Math.max(1, Math.ceil(entries.length / 3));
   shopPage = Math.min(shopPage, pages - 1);
   document.getElementById('shop-pager').style.display = pages > 1 ? '' : 'none';
   document.getElementById('shop-page').textContent = `${shopPage + 1}/${pages}`;
@@ -644,44 +763,57 @@ function renderShop() {
   art.innerHTML = '';
   ui.innerHTML = '';
 
-  const items = SHOP_ITEMS.slice(shopPage * 3, shopPage * 3 + 3);
-  items.forEach((item, i) => {
+  const shown = entries.slice(shopPage * 3, shopPage * 3 + 3);
+  shown.forEach((entry, i) => {
     const y = SHOP_SLOT_Y[i];
-    const owned = Save.ownedSets.includes(item.set);
-    const canBuy = !owned && Save.coins >= item.price;
-
     const a = document.createElement('div');
-    a.className = 'shop-slot-art' + (owned ? ' owned' : '');
     a.style.top = y + 'px';
-    a.innerHTML = item.img
-      ? `<img src="${item.img}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'slot-emoji',textContent:'${item.emoji}'}))">`
-      : `<span class="slot-emoji">${item.emoji}</span>`;
-    art.appendChild(a);
-
     const t = document.createElement('div');
     t.className = 'shop-slot-text';
     t.style.top = y + 'px';
-    t.innerHTML = `
-      <div class="ss-name">${item.name} <span class="ss-cards">· ${SETS[item.set].cards.length} cartas</span></div>
-      <div class="ss-desc">${item.desc}</div>`;
-    ui.appendChild(t);
-
     const b = document.createElement('button');
-    b.className = 'painted-btn shop-buy' + (owned ? ' owned' : '');
+    b.className = 'painted-btn shop-buy';
     b.style.top = (y + 59) + 'px';
-    b.disabled = owned || !canBuy;
-    b.textContent = owned ? '✔ COMPRADO' : item.price;
-    b.title = owned ? 'Ya tienes esta baraja'
-      : canBuy ? `Comprar por ${item.price} 💊`
-      : `Necesitas ${item.price} 💊 (tienes ${Save.coins})`;
-    b.addEventListener('click', () => {
-      if (owned || Save.coins < item.price) return;
-      Save.coins -= item.price;
-      Save.ownedSets.push(item.set);
-      persistSave();
-      Sfx.play('win');
-      renderShop();
-    });
+
+    if (entry.type === 'locked') {
+      /* ficha misteriosa: no revela ni cuántos mazos ni cuáles */
+      a.className = 'shop-slot-art locked';
+      a.innerHTML = `<span class="slot-emoji">🔒</span>`;
+      t.innerHTML = `
+        <div class="ss-name">🔒 MAZOS BLOQUEADOS</div>
+        <div class="ss-desc">Los mazos de los pacientes no están a la venta. <b>Juega al Modo Historia</b> y véncelos para quedarte con su mazo.</div>`;
+      /* el botón verde pintado del fondo se deja vacío (sin precio) */
+      b.classList.add('blocked');
+      b.textContent = '';
+      b.title = 'Se desbloquea venciendo a los pacientes en el Modo Historia';
+    } else {
+      const item = entry.item;
+      const owned = Save.ownedSets.includes(item.set);
+      const canBuy = !owned && Save.coins >= item.price;
+      a.className = 'shop-slot-art' + (owned ? ' owned' : '');
+      a.innerHTML = item.img
+        ? `<img src="${item.img}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'slot-emoji',textContent:'${item.emoji}'}))">`
+        : `<span class="slot-emoji">${item.emoji}</span>`;
+      t.innerHTML = `
+        <div class="ss-name">${item.name} <span class="ss-cards">· ${SETS[item.set].cards.length} cartas</span></div>
+        <div class="ss-desc">${item.desc}</div>`;
+      b.classList.toggle('owned', owned);
+      b.disabled = owned || !canBuy;
+      b.textContent = owned ? '✔ COMPRADO' : item.price;
+      b.title = owned ? 'Ya tienes esta expansión'
+        : canBuy ? `Comprar por ${item.price} 💊`
+        : `Necesitas ${item.price} 💊 (tienes ${Save.coins})`;
+      b.addEventListener('click', () => {
+        if (owned || Save.coins < item.price) return;
+        Save.coins -= item.price;
+        Save.ownedSets.push(item.set);
+        persistSave();
+        Sfx.play('win');
+        renderShop();
+      });
+    }
+    art.appendChild(a);
+    ui.appendChild(t);
     ui.appendChild(b);
   });
 }
@@ -720,6 +852,7 @@ function resetSave() {
   Save.packsDay = typeof todayStr === 'function' ? todayStr() : '';
   Save.cardCollection = {};
   Save.cardVariants = {};
+  Save.story = { defeated: [], revealed: [] };
   Save.settings = { sound: true, fastAI: false, showLog: true };
   persistSave();
   applySettings();
