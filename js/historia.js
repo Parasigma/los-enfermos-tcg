@@ -47,7 +47,9 @@ const HISTORIA = {};
    - jefe:      true en el boss final del capítulo
    - reto:      frase corta en la ficha del enemigo
    - intro:     diálogo antes de la partida (mismo formato de
-                siempre: {quien:'yo'|'rival', espera, duracion, texto})
+                siempre: {quien:'yo'|'rival', espera, duracion, texto}).
+                Opcional en cada línea: audio: 'nombre' para locutar la
+                frase (el fichero va en assets/sounds/historia/nombre.m4a).
    - victoria:  texto que aparece al ganarle
    ========================================================= */
 
@@ -64,9 +66,9 @@ HISTORIA.capitulo1 = {
       reto: 'El pullador del TOP 1. Ojo con el yogur de piña.',
       intro: [
         { quien: 'rival', espera: 1.2, duracion: 4.5, texto: '¿Otra vez tú, <b>Fiti</b>? Tu manicomio de juguete no puede conmigo. Lo dice el <b>TOP 1 del ranking</b>.' },
-        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Nikuman... tu habitación está lista. Acolchada, tranquila, y con visita de tus cinco gatos los domingos.' },
+        { quien: 'yo', espera: 0.7, duracion: 4.5, audio: 'fiti1', texto: 'Nikuman... tu habitación está lista. Acolchada, tranquila, y con visita de tus cinco gatos los domingos.' },
         { quien: 'rival', espera: 0.7, duracion: 5, texto: 'Ni se te ocurra servir <b>yogur de piña</b> en ese antro... ¿EH? ¿POR QUÉ SONRÍES? ¡Ya me he encanado!' },
-        { quien: 'yo', espera: 0.6, duracion: 3.5, texto: 'Celadores, preparen el ingreso. <i>Esto se resuelve con cartas.</i>' }
+        { quien: 'yo', espera: 0.6, duracion: 3.5, audio:'fiti2', texto: 'Celadores, preparen el ingreso. <i>Esto se resuelve con cartas.</i>' }
       ],
       victoria: 'El Director firma el ingreso de Nikuman. Un paciente nuevo... y sus 5 gatos de visita los domingos.'
     },
@@ -77,7 +79,7 @@ HISTORIA.capitulo1 = {
       reto: 'Huele a mofeta con gastroenteritis. Trae mascarilla.',
       intro: [
         { quien: 'rival', espera: 1, duracion: 4.5, texto: '¿Ingresar YO? Acabo de pedir <b>tres kebabs</b>. Es un NO rotundo, cacho lacón.' },
-        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Kevin, hueles a mofeta con gastroenteritis. En el sanatorio hay ventilación... o la habrá.' },
+        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Kevin tío, que te has cagado mientras hablabas... En el manicomio pienso prohibir los pedos.' },
         { quien: 'rival', espera: 0.7, duracion: 4.5, texto: 'Te voy a soltar un <b>pedo proteico</b> que te manda al turno 10. <i>*PFFFFFF*</i>' },
         { quien: 'yo', espera: 0.6, duracion: 3.5, texto: 'Celadores, MASCARILLAS. Vamos a por él.' }
       ],
@@ -155,6 +157,45 @@ function introWait(ms) {
   });
 }
 
+/* locución de los personajes: reproduce el audio de una línea del guion
+   (assets/sounds/historia/<nombre>.m4a). Respeta el ajuste de sonido. */
+let currentVoice = null;
+function stopVoice() {
+  if (typeof Music !== 'undefined') Music.duck(false);       // restaura la música
+  if (currentVoice) { try { currentVoice.pause(); } catch (e) {} currentVoice = null; }
+}
+function playVoice(name) {
+  stopVoice();
+  if (typeof Save !== 'undefined' && Save.settings && !Save.settings.sound) return;
+  try {
+    const file = name.includes('.') ? name : name + '.m4a';
+    const a = new Audio('assets/sounds/historia/' + file);
+    a.play().catch(() => {});
+    currentVoice = a;
+    if (typeof Music !== 'undefined') Music.duck(true);        // baja la música mientras habla
+  } catch (e) {}
+}
+
+/* espera a que la locución termine, para que el bocadillo dure lo que la
+   voz. Si el fichero falla/no carga, espera al menos minMs (la 'duracion'
+   del guion). Se corta con el botón de saltar o un tope de seguridad. */
+function waitVoiceEnd(minMs, maxMs) {
+  return new Promise(res => {
+    const a = currentVoice;
+    if (!a) return res();
+    let done = false, failed = false;
+    const t0 = performance.now();
+    const finish = () => { if (done) return; done = true; clearInterval(iv); res(); };
+    a.addEventListener('ended', finish, { once: true });
+    a.addEventListener('error', () => { failed = true; }, { once: true });
+    const iv = setInterval(() => {
+      const el = performance.now() - t0;
+      if (introSkip || a.ended || el >= maxMs) return finish();
+      if (failed && el >= minMs) return finish();
+    }, 80);
+  });
+}
+
 /* bocadillo de texto junto al retrato del que habla */
 function showBubble(quien, texto) {
   const b = document.createElement('div');
@@ -186,12 +227,22 @@ async function playHistoria(pasos) {
     if (introSkip) break;
     await introWait((paso.espera || 0.5) * 1000);
     if (introSkip) break;
+    stopVoice();
     const b = showBubble(paso.quien, paso.texto);
-    await introWait((paso.duracion || 4) * 1000);
+    if (paso.audio) playVoice(paso.audio);
+    /* con locución, el bocadillo dura lo que dure la voz; si no (o con el
+       sonido apagado), la 'duracion' fijada a mano en el guion */
+    if (paso.audio && currentVoice) {
+      await waitVoiceEnd((paso.duracion || 4) * 1000, 30000);
+      if (!introSkip) await introWait(400);
+    } else {
+      await introWait((paso.duracion || 4) * 1000);
+    }
     hideBubble(b);
     await introWait(300);
   }
   /* limpieza por si se saltó con bocadillos en pantalla */
+  stopVoice();
   document.querySelectorAll('.speech-bubble').forEach(b => b.remove());
 }
 

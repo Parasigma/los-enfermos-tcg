@@ -55,6 +55,52 @@ const Sfx = {
   }
 };
 
+/* ---------------- MÚSICA DE FONDO (suave, para acompañar) ----------------
+   Dos pistas en bucle: 'menus' (menús) y 'bg' (tablero). Suena bajita y
+   respeta el ajuste de sonido. El navegador solo deja arrancar audio tras
+   un gesto del usuario: se desbloquea con el primer clic (ver main.js). */
+const Music = {
+  vol: 0.3,
+  unlocked: false,
+  want: null,
+  ducked: false,
+  els: {},
+  el(name) {
+    if (!this.els[name]) {
+      const a = new Audio('assets/sounds/music/' + name + '.mp3');
+      a.loop = true; a.preload = 'auto'; a.volume = this.vol;
+      this.els[name] = a;
+    }
+    return this.els[name];
+  },
+  _target() { return this.ducked ? this.vol * 0.18 : this.vol; },
+  set(name) {
+    this.want = name;
+    if (!Sfx.enabled) { this.pauseAll(); return; }
+    if (!this.unlocked) return;               // arrancará en el primer gesto
+    this.pauseAll(name);
+    const a = this.el(name);
+    a.volume = this._target();
+    if (a.paused) a.play().catch(() => {});
+  },
+  pauseAll(except) {
+    for (const k in this.els) if (k !== except) { try { this.els[k].pause(); } catch (e) {} }
+  },
+  duck(on) {                                  // baja el volumen mientras habla un personaje
+    this.ducked = on;
+    for (const k in this.els) this.els[k].volume = this._target();
+  },
+  unlock() {
+    if (this.unlocked) return;
+    this.unlocked = true;
+    if (this.want) this.set(this.want);
+  },
+  refresh() {                                 // al cambiar el ajuste de sonido
+    if (!Sfx.enabled) this.pauseAll();
+    else if (this.want) this.set(this.want);
+  }
+};
+
 /* ---------------- EFECTOS ENCOLADOS DESDE EL MOTOR ---------------- */
 const fxQueue = [];
 Hooks.fx = (type, data) => fxQueue.push({ type, data });
@@ -1223,6 +1269,7 @@ function restartGame() {
 
 function startGame() {
   hideAllScreens();
+  if (typeof Music !== 'undefined') Music.set('bg');
   $('#log').innerHTML = '';
   busy = false;
   drag = null;

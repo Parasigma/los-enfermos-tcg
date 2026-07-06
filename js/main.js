@@ -6,6 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
   /* sin ficha de paciente: primero el registro */
   showScreen(Save.profile ? 'main-menu' : 'register-screen');
 
+  /* el audio (efectos + música) solo puede arrancar tras un gesto del
+     usuario: lo desbloqueamos con el primer clic/toque en cualquier sitio */
+  const unlockAudio = () => { Sfx.ensure(); if (typeof Music !== 'undefined') Music.unlock(); };
+  document.addEventListener('pointerdown', unlockAudio, { once: true });
+
   /* registro de la ficha de ingreso */
   const doRegister = () => {
     const name = document.getElementById('reg-name').value.trim();

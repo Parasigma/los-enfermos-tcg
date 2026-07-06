@@ -255,6 +255,7 @@ function collectionIds() {
 
 function applySettings() {
   Sfx.enabled = Save.settings.sound;
+  if (typeof Music !== 'undefined') Music.refresh();
   AIH.delay = ms => new Promise(r => setTimeout(r, Save.settings.fastAI ? ms * 0.35 : ms));
   const logPanel = document.getElementById('log-panel');
   const logToggle = document.getElementById('log-toggle');
@@ -270,6 +271,8 @@ function showScreen(id) {
   for (const s of SCREENS) {
     document.getElementById(s).classList.toggle('hidden', s !== id);
   }
+  /* en cualquier pantalla de menú suena la música de menús */
+  if (typeof Music !== 'undefined') Music.set('menus');
   if (id === 'main-menu') {
     document.getElementById('menu-coins').textContent = Save.coins;
     const pb = document.getElementById('menu-profile');
