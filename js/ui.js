@@ -73,7 +73,7 @@ const Music = {
     }
     return this.els[name];
   },
-  _target() { return this.ducked ? this.vol * 0.18 : this.vol; },
+  _target() { return this.ducked ? this.vol * 0.1 : this.vol; },
   set(name) {
     this.want = name;
     if (!Sfx.enabled) { this.pauseAll(); return; }
@@ -198,8 +198,19 @@ function minionEl(m, mine) {
 
 /* ---------------- RENDER PRINCIPAL ---------------- */
 
+/* última posición conocida de cada esbirro (para el VFX de muerte, que se
+   dispara cuando el esbirro ya no está en el DOM tras reconstruir el tablero) */
+let lastMinionPos = {};
+function snapshotMinionPositions() {
+  document.querySelectorAll('.minion[data-uid]').forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.width) lastMinionPos[el.dataset.uid] = [r.left + r.width / 2, r.top + r.height / 2];
+  });
+}
+
 function render() {
   if (!G) return;
+  snapshotMinionPositions();   // captura posiciones ANTES de reconstruir el tablero
   renderEnemyHand();
   renderHud(1);
   renderHud(0);
@@ -614,30 +625,50 @@ function flushFx() {
         spawnSplat(elForEntity(data.target), '-' + data.amount, 'dmg');
         Sfx.play('damage');
         break;
-      case 'heal':
-        spawnSplat(elForEntity(data.target), '+' + data.amount, 'heal');
+      case 'heal': {
+        const hEl = elForEntity(data.target);
+        spawnSplat(hEl, '+' + data.amount, 'heal');
+        if (hEl && typeof VFX !== 'undefined') { const [x, y] = centerOf(hEl); VFX.heal(x, y); }
         Sfx.play('heal');
         break;
-      case 'death': Sfx.play('death'); break;
+      }
+      case 'death': {
+        const p = lastMinionPos[data.minion && data.minion.uid];
+        if (p && typeof VFX !== 'undefined') VFX.death(p[0], p[1]);
+        Sfx.play('death');
+        break;
+      }
       case 'summon': {
         const el = elForEntity(data.minion);
         if (el) {
           el.classList.add('landing');
           const [x] = centerOf(el);
           const bottom = el.getBoundingClientRect().bottom;
-          setTimeout(() => { dustPuff(x, bottom - 10); Sfx.play('land'); }, 250);
+          setTimeout(() => {
+            dustPuff(x, bottom - 10);
+            if (typeof VFX !== 'undefined') VFX.smoke(x, bottom - 14);
+            Sfx.play('land');
+          }, 250);
         }
         break;
       }
       case 'spell': {
+        const pt = targetPoint(data.target, data.owner);
         const run = SPELL_VFX[data.card.id] || SPELL_VFX._default;
-        run({ owner: data.owner, pt: targetPoint(data.target, data.owner) });
+        run({ owner: data.owner, pt });
+        if (typeof VFX !== 'undefined') {
+          const r = data.card.def ? data.card.def.rarity : (CARDS[data.card.id] || {}).rarity;
+          const big = r === 'legendaria' || r === 'épica';
+          setTimeout(() => VFX.spell(pt[0], pt[1], data.card.id, big), 60);
+        }
         Sfx.play('magic');
         break;
       }
       case 'power': {
+        const pt = targetPoint(data.target, data.owner);
         const run = SPELL_VFX['power_' + data.hero] || SPELL_VFX._default;
-        run({ owner: data.owner, pt: targetPoint(data.target, data.owner) });
+        run({ owner: data.owner, pt });
+        if (typeof VFX !== 'undefined') setTimeout(() => VFX.magic(pt[0], pt[1], ['#ffd257', '#ffffff', '#bfeaff']), 60);
         Sfx.play('magic');
         break;
       }
@@ -681,6 +712,11 @@ function flushFx() {
           arrowShow(x1, y1, x2, y2, '#ff4b3a');
           setTimeout(() => { if (!drag) arrowHide(); }, 700);
         }
+        /* chispas de impacto en el objetivo, sincronizadas con la embestida */
+        if (tEl && typeof VFX !== 'undefined') {
+          const [tx, ty] = centerOf(tEl);
+          setTimeout(() => VFX.impact(tx, ty), 120);
+        }
         Sfx.play('attack');
         break;
       }
@@ -696,6 +732,7 @@ function flushFx() {
       case 'equip': {
         const [x, y] = heroPoint(data.owner);
         vfxBurst(x, y, ['⚔️', '✨'], 6, { dist: 45 });
+        if (typeof VFX !== 'undefined') VFX.magic(x, y, ['#d0d0d0', '#ffffff', '#ffd257']);
         Sfx.play('equip');
         break;
       }

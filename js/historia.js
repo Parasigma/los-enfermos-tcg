@@ -79,7 +79,7 @@ HISTORIA.capitulo1 = {
       reto: 'Huele a mofeta con gastroenteritis. Trae mascarilla.',
       intro: [
         { quien: 'rival', espera: 1, duracion: 4.5, texto: '¿Ingresar YO? Acabo de pedir <b>tres kebabs</b>. Es un NO rotundo, cacho lacón.' },
-        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Kevin tío, que te has cagado mientras hablabas... En el manicomio pienso prohibir los pedos.' },
+        { quien: 'yo', espera: 0.7, duracion: 4.5, audio: 'fiti_kevin_1', texto: 'Kevin tío, que te has cagado mientras hablabas... En el manicomio pienso prohibir los pedos.' },
         { quien: 'rival', espera: 0.7, duracion: 4.5, texto: 'Te voy a soltar un <b>pedo proteico</b> que te manda al turno 10. <i>*PFFFFFF*</i>' },
         { quien: 'yo', espera: 0.6, duracion: 3.5, texto: 'Celadores, MASCARILLAS. Vamos a por él.' }
       ],
@@ -160,6 +160,7 @@ function introWait(ms) {
 /* locución de los personajes: reproduce el audio de una línea del guion
    (assets/sounds/historia/<nombre>.m4a). Respeta el ajuste de sonido. */
 let currentVoice = null;
+const VOICE_GAIN = 3.4;   // amplifica la voz muy por encima del 100% (ajustable)
 function stopVoice() {
   if (typeof Music !== 'undefined') Music.duck(false);       // restaura la música
   if (currentVoice) { try { currentVoice.pause(); } catch (e) {} currentVoice = null; }
@@ -170,8 +171,23 @@ function playVoice(name) {
   try {
     const file = name.includes('.') ? name : name + '.m4a';
     const a = new Audio('assets/sounds/historia/' + file);
-    a.play().catch(() => {});
+    a.volume = 1;
     currentVoice = a;
+    /* sube MUCHO el volumen de la voz con WebAudio: ganancia + limitador
+       (el limitador evita que sature/distorsione al amplificar tanto) */
+    try {
+      const ctx = (typeof Sfx !== 'undefined') ? Sfx.ctx : null;
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+      if (ctx && ctx.state === 'running') {
+        const src = ctx.createMediaElementSource(a);
+        const g = ctx.createGain(); g.gain.value = VOICE_GAIN;
+        const lim = ctx.createDynamicsCompressor();
+        lim.threshold.value = -3; lim.knee.value = 3; lim.ratio.value = 20;
+        lim.attack.value = 0.003; lim.release.value = 0.1;
+        src.connect(g); g.connect(lim); lim.connect(ctx.destination);
+      }
+    } catch (e) {}
+    a.play().catch(() => {});
     if (typeof Music !== 'undefined') Music.duck(true);        // baja la música mientras habla
   } catch (e) {}
 }
