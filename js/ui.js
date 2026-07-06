@@ -1199,12 +1199,20 @@ function abortDrag() {
 
 function openCardInspector(c, variantOverride) {
   const card = $('#ci-card');
-  card.innerHTML = bigCardHTML(c) + '<div id="ci-glare"></div>';
+  card.innerHTML = bigCardHTML(c)
+    + '<div class="ci-fx" id="ci-holo"></div><div class="ci-fx" id="ci-sparkle"></div><div id="ci-glare"></div>';
   if (variantOverride !== undefined) {
     const el = card.querySelector('.card');
     el.classList.remove('v-brillante', 'v-dorada', 'v-alterada', 'v-foil');
     if (variantOverride) el.classList.add('v-' + variantOverride);
   }
+  /* activa el foil holográfico si la carta es especial (foil/dorada/etc.) */
+  const cardEl = card.querySelector('.card');
+  const variant = ['v-foil', 'v-dorada', 'v-brillante', 'v-alterada'].find(v => cardEl && cardEl.classList.contains(v));
+  card.classList.toggle('holo-on', !!variant);
+  card.dataset.variant = variant ? variant.slice(2) : '';
+  card.style.setProperty('--gx', '50%');
+  card.style.setProperty('--gy', '50%');
   /* escala para que quepa con aire en cualquier pantalla */
   const s = Math.min(1.45, (window.innerHeight * 0.78) / 400, (window.innerWidth * 0.6) / 290);
   $('#ci-holder').style.transform = `scale(${Math.max(0.55, s)})`;
@@ -1247,6 +1255,14 @@ function initCardInspector() {
     ciDragging = false;
     card.classList.remove('dragging');
     card.style.transform = 'none'; // vuelve suave a su sitio
+  });
+  /* en ratón: la carta se inclina y el foil brilla al pasar por encima */
+  card.addEventListener('pointermove', e => { if (!ciDragging) ciTilt(e); });
+  card.addEventListener('pointerleave', () => {
+    if (ciDragging) return;
+    card.style.transform = 'none';
+    card.style.setProperty('--gx', '50%');
+    card.style.setProperty('--gy', '50%');
   });
   $('#ci-backdrop').addEventListener('click', closeCardInspector);
   $('#ci-close').addEventListener('click', closeCardInspector);
