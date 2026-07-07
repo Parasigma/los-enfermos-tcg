@@ -842,21 +842,24 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   cursor: grab;
   touch-action: none;
 }
-/* DIAMOND en 3D: la carta (arte/texto/números) se ve como siempre;
-   el foil 2D se apaga porque lo sustituye la lámina de diamante 3D */
+/* DIAMOND en 3D: el modelo hace de FONDO/marco (con la ilustración
+   dentro, asomando por el hueco). Se apaga todo el marco/fondo plano
+   de la carta y solo queda el TEXTO por delante del 3D. */
+#ci-card.is-3d { z-index: 3; }               /* el texto va sobre el canvas */
+#ci-card.is-3d::after,                        /* marco plano de diamante */
+#ci-card.is-3d .card::after,
+#ci-card.is-3d .card::before,                 /* foil 2D */
+#ci-card.is-3d .card .art,                    /* ilustración (la pone el 3D) */
+#ci-card.is-3d .dia-fx,
 #ci-card.is-3d #ci-holo,
 #ci-card.is-3d #ci-sparkle,
-#ci-card.is-3d #ci-glare { display: none; }
-/* lámina de diamante 3D ENCIMA de la carta (relieve + brillo), mezclada
-   para no tapar el contenido. Va en #ci-holder (no rota con la carta:
-   el relieve lo pone el propio modelo 3D). */
+#ci-card.is-3d #ci-glare { display: none !important; }
+/* el canvas 3D es el fondo/marco opaco, DEBAJO del texto */
 #card3d-canvas {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
-  z-index: 6;
+  z-index: 2;
   pointer-events: none;
-  mix-blend-mode: soft-light;
-  opacity: .9;
 }
 #ci-card.dragging { transition: none; cursor: grabbing; }
 /* reflejo que sigue al puntero: da vida a foils y doradas */

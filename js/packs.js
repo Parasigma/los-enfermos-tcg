@@ -30,8 +30,10 @@ const PACK_RARITY_ODDS = [
 
 /* GRADOS especiales de carta, de MÁS raro a menos (en % por carta).
    Jerarquía: normal < foil < alterada < dorada < DIAMOND (el más raro). */
+/* En modo test las DIAMOND salen muchísimo (60%) para poder probarlas;
+   con PACKS_TEST_MODE = false vuelven a su rareza real (0.15%). */
 const VARIANT_ODDS = [
-  ['diamond', 0.15],
+  ['diamond', PACKS_TEST_MODE ? 60 : 0.15],
   ['dorada', 0.8],
   ['alterada', 2.0],
   ['foil', 4.0]

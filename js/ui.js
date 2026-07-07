@@ -1244,9 +1244,13 @@ function openCardInspector(c, variantOverride) {
   $('#card-inspector').classList.remove('hidden');
   hidePreview();
   Sfx.play('play');
-  /* la lámina 3D va en #ci-holder (hermana de la carta) para que no
-     herede la rotación CSS de la carta: el relieve lo pone el modelo */
-  if (is3d) Card3D.open($('#ci-holder'));
+  /* el fondo/marco 3D va en #ci-holder (hermano de la carta) para no
+     heredar la rotación CSS; se le pasa la ilustración para el hueco */
+  if (is3d) {
+    const d = c.def || c;
+    const base = (typeof ILUSTRACIONES !== 'undefined' && ILUSTRACIONES[d.id]) || null;
+    Card3D.open($('#ci-holder'), { url: 'assets/ilustraciones/diamond/' + d.id + '.webp', fallback: base });
+  }
 }
 
 function closeCardInspector() {
