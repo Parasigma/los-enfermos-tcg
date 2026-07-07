@@ -3,28 +3,27 @@
    CARD3D — fondo/marco 3D de las cartas DIAMOND
    ---------------------------------------------------------
    El modelo (assets/3D/diamond_card.glb) ES el fondo de la
-   carta: marco de diamante opaco con el HUECO recortado para
-   la ilustración. Se monta así, de atrás a delante:
-     · la ILUSTRACIÓN va como plano dentro de la escena 3D,
-       detrás del marco, y asoma por el hueco (rota con el
-       modelo, siempre encajada).
-     · el MARCO 3D (el glb) por encima, opaco.
-     · el TEXTO (nombre, coste, ataque, vida, descripción) va
-       DELANTE en HTML (capa #ci-card), sincronizado con el
-       giro del modelo.
-   No se usa el marco/fondo plano de diamante: lo pone el 3D.
+   carta: marco de diamante opaco con el HUECO para la
+   ilustración. Se monta de atrás a delante:
+     · ILUSTRACIÓN: plano dentro de la escena 3D, detrás del
+       marco; asoma por el hueco y rota con el modelo. Si la
+       carta no tiene imagen real, se genera con su emoji
+       sobre el fondo base (igual que la carta plana).
+     · MARCO 3D (el glb) por encima, opaco.
+     · TEXTO en HTML por delante (#ci-card): el bucle de
+       render mueve el texto con EXACTAMENTE el mismo giro
+       que el modelo, así van pegados.
    three.js autoalojado (offline). Sin WebGL, carta plana.
    ========================================================= */
 const Card3D = (() => {
   let renderer, scene, camera, pivot, holder, model, illo, illoMat, canvas;
   let rawSize = null;
-  const CAM_Z = 6, FOV = 30;
-  /* ventana del arte (mismos % que .card .art) para colocar la
-     ilustración justo en el hueco del modelo */
+  let textEl = null;                       // capa de texto que giramos en sincronía
+  let bgImg = null, bgReady = false;       // fondo base para cartas sin imagen
+  const CAM_Z = 6, FOV = 30, RAD2DEG = 180 / Math.PI;
   const ART = { l: 0.13, r: 0.845, t: 0.085, b: 0.383, pad: 1.08 };
   let ready = false, loading = false, active = false, rafId = null;
-  let pending = [];
-  let pendingArt = null;
+  let pending = [], pendingArt = null;
   let tRX = 0, tRY = 0, cRX = 0, cRY = 0;
   let lastW = 0, lastH = 0;
 
@@ -33,8 +32,16 @@ const Card3D = (() => {
       && !!window.WebGLRenderingContext;
   }
 
+  function ensureBg() {
+    if (bgImg) return;
+    bgImg = new Image();
+    bgImg.onload = () => { bgReady = true; };
+    bgImg.src = 'assets/cartas_fondo_basic.jpg';
+  }
+
   function init() {
     if (renderer) return;
+    ensureBg();
     canvas = document.createElement('canvas');
     canvas.id = 'card3d-canvas';
     try {
@@ -80,18 +87,15 @@ const Card3D = (() => {
       });
       const box = new THREE.Box3().setFromObject(model);
       rawSize = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      model.position.sub(center);           // centrado dentro de su grupo
+      model.position.sub(box.getCenter(new THREE.Vector3()));
       holder = new THREE.Group();
-      holder.add(model);                    // el holder se escala (mantiene el centrado)
+      holder.add(model);
 
-      /* plano de la ilustración (detrás del marco, asoma por el hueco) */
       illoMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, toneMapped: false });
       illo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), illoMat);
 
       pivot = new THREE.Group();
-      pivot.add(holder);
-      pivot.add(illo);
+      pivot.add(holder); pivot.add(illo);
       scene.add(pivot);
       ready = true; loading = false;
       fit();
@@ -99,23 +103,42 @@ const Card3D = (() => {
     }, undefined, () => { loading = false; pending = []; });
   }
 
-  function loadArt(url, fallback) {
-    if (!illoMat) return;
+  function setTex(tex) {
+    if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
+    else if ('encoding' in tex) tex.encoding = THREE.sRGBEncoding;
+    illoMat.map = tex; illoMat.opacity = 1; illoMat.needsUpdate = true;
+  }
+
+  /* textura de reserva: emoji sobre el fondo base (cartas sin imagen real,
+     como en la ventana de arte de la carta plana) */
+  function emojiTexture(emoji) {
+    const w = 512, h = 303;
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d');
+    if (bgReady) {
+      const s = Math.max(w / bgImg.width, h / bgImg.height);
+      const dw = bgImg.width * s, dh = bgImg.height * s;
+      cx.drawImage(bgImg, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    } else { cx.fillStyle = '#2e2620'; cx.fillRect(0, 0, w, h); }
+    cx.font = Math.round(h * 0.72) + 'px serif';
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(emoji || '❓', w / 2, h * 0.54);
+    return new THREE.CanvasTexture(cv);
+  }
+
+  function loadArt(art) {
+    if (!illoMat || !art) return;
+    illoMat.opacity = 0;
     const tl = new THREE.TextureLoader();
-    const apply = tex => {
-      if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
-      else if ('encoding' in tex) tex.encoding = THREE.sRGBEncoding;
-      illoMat.map = tex; illoMat.opacity = 1; illoMat.needsUpdate = true;
-    };
-    illoMat.opacity = 0;                    // oculta mientras carga
-    tl.load(url, apply, undefined, () => {  // si no existe el webp, cae al png base
-      if (fallback) tl.load(fallback, apply, undefined, () => {});
+    const useEmoji = () => setTex(emojiTexture(art.emoji));
+    tl.load(art.url, setTex, undefined, () => {
+      if (art.fallback) tl.load(art.fallback, setTex, undefined, useEmoji);
+      else useEmoji();
     });
   }
 
-  /* escala el modelo para que el marco llene el canvas (encaje con el
-     texto/ilustración) y coloca la ilustración en el hueco. Se recalcula
-     al redimensionar porque depende del aspecto del canvas. */
+  /* escala el marco para llenar el canvas y coloca la ilustración en el
+     hueco. Se recalcula al redimensionar (depende del aspecto). */
   function fit() {
     if (!model || !rawSize) return;
     const vFov = FOV * Math.PI / 180;
@@ -125,9 +148,7 @@ const Card3D = (() => {
     const cardW = visW * f, cardH = visH * f;
     holder.scale.set(cardW / rawSize.x, cardH / rawSize.y, cardH / rawSize.y);
     if (illo) {
-      const cx = ((ART.l + ART.r) / 2 - 0.5) * cardW;
-      const cy = (0.5 - (ART.t + ART.b) / 2) * cardH;
-      illo.position.set(cx, cy, 0);         // a media profundidad: asoma por el hueco
+      illo.position.set(((ART.l + ART.r) / 2 - 0.5) * cardW, (0.5 - (ART.t + ART.b) / 2) * cardH, 0);
       illo.scale.set((ART.r - ART.l) * cardW * ART.pad, (ART.b - ART.t) * cardH * ART.pad, 1);
     }
   }
@@ -149,23 +170,26 @@ const Card3D = (() => {
       const r = canvas.getBoundingClientRect();
       if (r.width && (Math.abs(r.width - lastW) > 1 || Math.abs(r.height - lastH) > 1)) resize();
     }
-    cRX += (tRX - cRX) * 0.14;
-    cRY += (tRY - cRY) * 0.14;
+    cRX += (tRX - cRX) * 0.16;
+    cRY += (tRY - cRY) * 0.16;
     if (pivot) { pivot.rotation.x = cRX; pivot.rotation.y = cRY; }
+    /* mueve el texto con EXACTAMENTE el mismo giro que el modelo */
+    if (textEl) textEl.style.transform = 'rotateY(' + (cRY * RAD2DEG) + 'deg) rotateX(' + (cRX * RAD2DEG) + 'deg)';
     renderer.render(scene, camera);
   }
 
   return {
     supported,
-    /* art = { url, fallback } ilustración a mostrar por el hueco */
-    open(container, art) {
+    /* art = { url, fallback, emoji }; text = capa de texto a sincronizar */
+    open(container, art, text) {
       if (!supported()) return false;
       active = true;
       pendingArt = art || null;
+      textEl = text || null;
       loadModel(() => {
         if (!active) return;
         container.appendChild(canvas);
-        if (pendingArt) loadArt(pendingArt.url, pendingArt.fallback);
+        if (pendingArt) loadArt(pendingArt);
         resize();
         if (!rafId) loop();
       });
@@ -176,10 +200,12 @@ const Card3D = (() => {
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
       if (canvas && canvas.parentElement) canvas.parentElement.removeChild(canvas);
       if (illoMat) { illoMat.opacity = 0; if (illoMat.map) { illoMat.map.dispose(); illoMat.map = null; } }
+      if (textEl) { textEl.style.transform = ''; textEl = null; }
       tRX = tRY = cRX = cRY = 0;
     },
-    /* mismos ángulos que la carta 2D (rotateY cx*44°, rotateX -cy*34°) */
-    setTilt(cx, cy) { tRY = cx * 0.767; tRX = -cy * 0.593; },
+    /* giro algo restringido para que texto y 3D no canten al inclinar
+       (rotateY ~35°, rotateX ~27° a tope) */
+    setTilt(cx, cy) { tRY = cx * 0.62; tRX = -cy * 0.48; },
     resize
   };
 })();

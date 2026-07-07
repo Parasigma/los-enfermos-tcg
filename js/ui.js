@@ -1245,11 +1245,18 @@ function openCardInspector(c, variantOverride) {
   hidePreview();
   Sfx.play('play');
   /* el fondo/marco 3D va en #ci-holder (hermano de la carta) para no
-     heredar la rotación CSS; se le pasa la ilustración para el hueco */
+     heredar la rotación CSS; se le pasa la ilustración (para el hueco) y
+     la capa de texto, que el modelo mueve en sincronía. La perspectiva
+     del holder se ajusta a la de la cámara 3D para que cuadren. */
   if (is3d) {
     const d = c.def || c;
     const base = (typeof ILUSTRACIONES !== 'undefined' && ILUSTRACIONES[d.id]) || null;
-    Card3D.open($('#ci-holder'), { url: 'assets/ilustraciones/diamond/' + d.id + '.webp', fallback: base });
+    $('#ci-holder').style.perspective = '743px';
+    Card3D.open($('#ci-holder'),
+      { url: 'assets/ilustraciones/diamond/' + d.id + '.webp', fallback: base, emoji: d.emoji },
+      card);
+  } else {
+    $('#ci-holder').style.perspective = '';
   }
 }
 
@@ -1270,8 +1277,12 @@ function ciTilt(e) {
   const cy = Math.max(-0.65, Math.min(0.65, py));
   card.style.setProperty('--gx', ((cx + 0.5) * 100) + '%');
   card.style.setProperty('--gy', ((cy + 0.5) * 100) + '%');
-  /* en DIAMOND la carta se inclina igual y la lámina 3D la acompaña */
-  if (card.classList.contains('is-3d') && typeof Card3D !== 'undefined') Card3D.setTilt(cx, cy);
+  /* en DIAMOND solo fijamos el objetivo de giro: el bucle de render mueve
+     el texto (esta capa) con el mismo ángulo exacto que el modelo 3D */
+  if (card.classList.contains('is-3d')) {
+    if (typeof Card3D !== 'undefined') Card3D.setTilt(cx, cy);
+    return;
+  }
   card.style.transform = `rotateY(${cx * 44}deg) rotateX(${-cy * 34}deg)`;
 }
 

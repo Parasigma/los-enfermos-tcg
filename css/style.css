@@ -845,7 +845,9 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 /* DIAMOND en 3D: el modelo hace de FONDO/marco (con la ilustración
    dentro, asomando por el hueco). Se apaga todo el marco/fondo plano
    de la carta y solo queda el TEXTO por delante del 3D. */
-#ci-card.is-3d { z-index: 3; }               /* el texto va sobre el canvas */
+/* el texto va sobre el canvas; sin transición porque el bucle 3D fija el
+   giro cada frame (si no, se arrastraría medio segundo por detrás) */
+#ci-card.is-3d { z-index: 3; transition: none; }
 #ci-card.is-3d::after,                        /* marco plano de diamante */
 #ci-card.is-3d .card::after,
 #ci-card.is-3d .card::before,                 /* foil 2D */
@@ -854,6 +856,11 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 #ci-card.is-3d #ci-holo,
 #ci-card.is-3d #ci-sparkle,
 #ci-card.is-3d #ci-glare { display: none !important; }
+/* los números de coste y stats se adelantan un poco: van sobre las gemas
+   con relieve del marco 3D, y así parecen encajados en ellas */
+#ci-card.is-3d .card { transform-style: preserve-3d; }
+#ci-card.is-3d .cost { transform: translateZ(18px); }
+#ci-card.is-3d .stat { transform: translateZ(16px); }
 /* el canvas 3D es el fondo/marco opaco, DEBAJO del texto */
 #card3d-canvas {
   position: absolute; inset: 0;
