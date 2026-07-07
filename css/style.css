@@ -1381,7 +1381,9 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 .card.v-dorada { filter: drop-shadow(0 0 8px rgba(255, 200, 60, .95)); }
 .card.v-dorada::after { background-image: url('../assets/cards_spell_gold.png'); }
 .card.v-dorada.t-minion::after { background-image: url('../assets/card_back_gold.png'); }
-/* en el tablero no hay arco dorado: baño de oro en el arte + aura */
+/* en el tablero: marco DORADO propio (mismo hueco que monster.png) +
+   baño de oro en el arte + aura */
+.minion.v-dorada::after { background-image: url('../assets/monster_golden.png'); }
 .minion.v-dorada .m-art img, .minion.v-dorada .m-art .art-emoji {
   filter: sepia(.55) saturate(1.6) hue-rotate(-12deg) brightness(1.08);
 }
@@ -1462,7 +1464,9 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 .card.v-diamond.t-minion::after {
   background-image: url('../assets/card_back_diamond.png'), url('../assets/card_back.png');
 }
-/* esbirros diamante en el tablero: no hay marco propio -> baño helado + aura */
+/* esbirros diamante en el tablero: marco de DIAMANTE propio + baño helado
+   en el arte + aura (y las partículas .dia-fx que añade minionEl) */
+.minion.v-diamond::after { background-image: url('../assets/monster_diamond.png'); }
 .minion.v-diamond .m-art img, .minion.v-diamond .m-art .art-emoji {
   filter: saturate(1.15) brightness(1.08) drop-shadow(0 0 3px rgba(150, 225, 255, .8));
 }
