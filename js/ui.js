@@ -1244,7 +1244,9 @@ function openCardInspector(c, variantOverride) {
   $('#card-inspector').classList.remove('hidden');
   hidePreview();
   Sfx.play('play');
-  if (is3d) Card3D.open(card);
+  /* la lámina 3D va en #ci-holder (hermana de la carta) para que no
+     herede la rotación CSS de la carta: el relieve lo pone el modelo */
+  if (is3d) Card3D.open($('#ci-holder'));
 }
 
 function closeCardInspector() {
@@ -1264,10 +1266,8 @@ function ciTilt(e) {
   const cy = Math.max(-0.65, Math.min(0.65, py));
   card.style.setProperty('--gx', ((cx + 0.5) * 100) + '%');
   card.style.setProperty('--gy', ((cy + 0.5) * 100) + '%');
-  if (card.classList.contains('is-3d')) {
-    if (typeof Card3D !== 'undefined') Card3D.setTilt(cx, cy);   // el modelo 3D rota solo
-    return;
-  }
+  /* en DIAMOND la carta se inclina igual y la lámina 3D la acompaña */
+  if (card.classList.contains('is-3d') && typeof Card3D !== 'undefined') Card3D.setTilt(cx, cy);
   card.style.transform = `rotateY(${cx * 44}deg) rotateX(${-cy * 34}deg)`;
 }
 
