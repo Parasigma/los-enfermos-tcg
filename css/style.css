@@ -836,10 +836,22 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   z-index: 1;
 }
 #ci-card {
+  position: relative;
   transition: transform .3s ease;
   transform-style: preserve-3d;
   cursor: grab;
   touch-action: none;
+}
+/* DIAMOND en 3D: se oculta la carta plana y sus capas; se ve el modelo */
+#ci-card.is-3d .card,
+#ci-card.is-3d #ci-holo,
+#ci-card.is-3d #ci-sparkle,
+#ci-card.is-3d #ci-glare { visibility: hidden; }
+#card3d-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 6;
+  pointer-events: none;
 }
 #ci-card.dragging { transition: none; cursor: grabbing; }
 /* reflejo que sigue al puntero: da vida a foils y doradas */

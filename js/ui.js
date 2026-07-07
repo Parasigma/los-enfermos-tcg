@@ -1233,6 +1233,10 @@ function openCardInspector(c, variantOverride) {
   card.dataset.variant = variant ? variant.slice(2) : '';
   card.style.setProperty('--gx', '50%');
   card.style.setProperty('--gy', '50%');
+  /* las DIAMOND se ven en 3D (modelo con relieve y brillo) en vez de plana */
+  const is3d = card.dataset.variant === 'diamond' && typeof Card3D !== 'undefined' && Card3D.supported();
+  card.classList.toggle('is-3d', is3d);
+  if (!is3d && typeof Card3D !== 'undefined') Card3D.close();
   /* escala para que quepa con aire en cualquier pantalla */
   const s = Math.min(1.45, (window.innerHeight * 0.78) / 400, (window.innerWidth * 0.6) / 290);
   $('#ci-holder').style.transform = `scale(${Math.max(0.55, s)})`;
@@ -1240,11 +1244,13 @@ function openCardInspector(c, variantOverride) {
   $('#card-inspector').classList.remove('hidden');
   hidePreview();
   Sfx.play('play');
+  if (is3d) Card3D.open(card);
 }
 
 function closeCardInspector() {
   $('#card-inspector').classList.add('hidden');
   ciDragging = false;
+  if (typeof Card3D !== 'undefined') Card3D.close();
 }
 
 /* inclinación según la posición del puntero sobre la carta */
@@ -1256,9 +1262,13 @@ function ciTilt(e) {
   const py = (e.clientY - r.top) / r.height - 0.5;
   const cx = Math.max(-0.65, Math.min(0.65, px));
   const cy = Math.max(-0.65, Math.min(0.65, py));
-  card.style.transform = `rotateY(${cx * 44}deg) rotateX(${-cy * 34}deg)`;
   card.style.setProperty('--gx', ((cx + 0.5) * 100) + '%');
   card.style.setProperty('--gy', ((cy + 0.5) * 100) + '%');
+  if (card.classList.contains('is-3d')) {
+    if (typeof Card3D !== 'undefined') Card3D.setTilt(cx, cy);   // el modelo 3D rota solo
+    return;
+  }
+  card.style.transform = `rotateY(${cx * 44}deg) rotateX(${-cy * 34}deg)`;
 }
 
 function initCardInspector() {
@@ -1283,6 +1293,7 @@ function initCardInspector() {
     card.style.transform = 'none';
     card.style.setProperty('--gx', '50%');
     card.style.setProperty('--gy', '50%');
+    if (card.classList.contains('is-3d') && typeof Card3D !== 'undefined') Card3D.setTilt(0, 0);
   });
   $('#ci-backdrop').addEventListener('click', closeCardInspector);
   $('#ci-close').addEventListener('click', closeCardInspector);
