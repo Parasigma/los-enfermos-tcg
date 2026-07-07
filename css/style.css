@@ -45,6 +45,11 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* cursor personalizado del juego (mouse_cursor.png = mouse.png reducido a
+   tamaño de cursor; punta/hotspot arriba-izquierda) */
+html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
+#game input, #game textarea { cursor: text; }
+
 /* táctil: el tablero gestiona sus propios gestos (arrastres);
    las zonas con listas mantienen el scroll vertical del dedo */
 #stage, #menu-stage { touch-action: none; }
@@ -868,8 +873,8 @@ body {
   transition: opacity .25s ease;
   mix-blend-mode: color-dodge;
 }
-#ci-card.holo-on #ci-holo { opacity: .58; }
-#ci-card.holo-on #ci-sparkle { opacity: .4; }
+#ci-card.holo-on #ci-holo { opacity: .42; }
+#ci-card.holo-on #ci-sparkle { opacity: .28; }
 
 /* 1) sábana arcoíris que se desplaza con la inclinación */
 #ci-holo {
@@ -1369,30 +1374,110 @@ body {
 .card.v-alterada { filter: drop-shadow(0 0 7px rgba(160, 80, 255, .8)); }
 .minion.v-alterada { filter: drop-shadow(0 0 7px rgba(160, 80, 255, .8)); }
 
-/* 🌈 foil: reflejo arcoíris en movimiento */
-.card.v-foil::before, .minion.v-foil .m-art::after {
+/* 🌈 FOIL holográfico ANIMADO (arcoíris + purpurina) — se ve también en
+   pequeño: mano, tablero, colección y sobres. Las DIAMANTE lo llevan igual. */
+.card.v-foil::before, .card.v-diamond::before,
+.minion.v-foil .m-art::after, .minion.v-diamond .m-art::after {
   content: '';
   position: absolute; inset: 0;
   border-radius: inherit;
   pointer-events: none;
   z-index: 3;
-  background: linear-gradient(115deg,
-    transparent 18%,
-    rgba(255, 110, 199, .30) 32%,
-    rgba(110, 243, 255, .30) 46%,
-    rgba(255, 235, 110, .30) 60%,
-    rgba(185, 128, 255, .30) 72%,
-    transparent 86%);
-  background-size: 300% 300%;
-  animation: foilSweep 2.6s linear infinite;
-  mix-blend-mode: screen;
+  opacity: .48;
+  mix-blend-mode: color-dodge;
+  background-image:
+    repeating-linear-gradient(115deg,
+      rgba(255, 80, 120, .5) 0%, rgba(255, 215, 70, .45) 9%, rgba(90, 255, 150, .5) 18%,
+      rgba(70, 200, 255, .5) 27%, rgba(160, 110, 255, .5) 36%, rgba(255, 110, 200, .5) 45%,
+      rgba(255, 80, 120, .5) 54%),
+    radial-gradient(circle, rgba(255, 255, 255, .85) 0.5px, transparent 1.5px);
+  background-size: 260% 260%, 6px 6px;
+  filter: brightness(.95) contrast(1.4) saturate(1.4);
+  animation: foilShift 3.2s linear infinite;
 }
-@keyframes foilSweep {
-  0% { background-position: 120% 0; }
-  100% { background-position: -80% 0; }
+@keyframes foilShift {
+  0%   { background-position: 0% 50%, 0 0; }
+  100% { background-position: 260% 50%, 36px 30px; }
+}
+
+/* 🏆 DORADA: mismo brillo pero en ORO (además del marco dorado) */
+.card.v-dorada::before, .minion.v-dorada .m-art::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  opacity: .46;
+  mix-blend-mode: color-dodge;
+  background-image:
+    repeating-linear-gradient(115deg,
+      rgba(255, 220, 90, .55) 0%, rgba(255, 245, 200, .5) 12%, rgba(255, 175, 40, .55) 24%,
+      rgba(255, 235, 150, .5) 36%, rgba(210, 140, 30, .5) 48%, rgba(255, 220, 90, .55) 60%),
+    radial-gradient(circle, rgba(255, 250, 210, .9) 0.5px, transparent 1.5px);
+  background-size: 260% 260%, 6px 6px;
+  filter: brightness(.95) contrast(1.35) saturate(1.3);
+  animation: foilShift 3.6s linear infinite;
 }
 .card.v-foil { filter: drop-shadow(0 0 8px rgba(185, 128, 255, .85)); }
 .minion.v-foil { filter: drop-shadow(0 0 8px rgba(185, 128, 255, .85)); }
+
+/* 💎 DIAMANTE: el grado más raro — marco de diamante + foil + ilustración
+   animada (webp) + partículas de energía que suben en bucle */
+.card.v-diamond { filter: drop-shadow(0 0 11px rgba(150, 225, 255, .95)); }
+/* marco de diamante ENCIMA del normal: si el PNG aún no existe, se ve el
+   marco de siempre por debajo (no queda una carta sin marco) */
+.card.v-diamond::after {
+  background-image: url('../assets/cards_spells_diamond.png'), url('../assets/cards_spell.png');
+  background-size: 100% 100%, 100% 100%;
+  background-position: 0 0, 0 0;
+  background-repeat: no-repeat, no-repeat;
+}
+.card.v-diamond.t-minion::after {
+  background-image: url('../assets/card_back_diamond.png'), url('../assets/card_back.png');
+}
+/* esbirros diamante en el tablero: no hay marco propio -> baño helado + aura */
+.minion.v-diamond .m-art img, .minion.v-diamond .m-art .art-emoji {
+  filter: saturate(1.15) brightness(1.08) drop-shadow(0 0 3px rgba(150, 225, 255, .8));
+}
+.minion.v-diamond { filter: drop-shadow(0 0 10px rgba(150, 225, 255, .9)); }
+
+/* partículas de energía que ascienden sin parar */
+.dia-fx {
+  position: absolute; inset: 0; overflow: hidden;
+  border-radius: inherit; pointer-events: none; z-index: 4;
+}
+.dia-fx i {
+  position: absolute; bottom: -8px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0 32%, #cceeff 55%, transparent 74%);
+  box-shadow: 0 0 9px 1px rgba(190, 235, 255, 1);
+  opacity: 0;
+  animation: diaRise linear infinite;
+}
+@keyframes diaRise {
+  0%   { transform: translateY(0) scale(.35); opacity: 0; }
+  12%  { opacity: 1; }
+  80%  { opacity: .9; }
+  100% { transform: translateY(-92px) scale(1.05); opacity: 0; }
+}
+.dia-fx i:nth-child(1) { left: 12%; animation-duration: 2.1s; animation-delay: 0s;    width: 4px; height: 4px; }
+.dia-fx i:nth-child(2) { left: 27%; animation-duration: 2.7s; animation-delay: .5s;   }
+.dia-fx i:nth-child(3) { left: 40%; animation-duration: 1.9s; animation-delay: 1.1s;  width: 6px; height: 6px; }
+.dia-fx i:nth-child(4) { left: 54%; animation-duration: 2.5s; animation-delay: .3s;   }
+.dia-fx i:nth-child(5) { left: 67%; animation-duration: 2.2s; animation-delay: 1.4s;  width: 4px; height: 4px; }
+.dia-fx i:nth-child(6) { left: 80%; animation-duration: 2.9s; animation-delay: .8s;   width: 6px; height: 6px; }
+.dia-fx i:nth-child(7) { left: 90%; animation-duration: 2.4s; animation-delay: 1.7s;  }
+
+/* reverso de diamante en el revelado de sobres (imagen propia) */
+.card-reverse.diamond {
+  background-image: url('../assets/reverso_diamond.png');
+  filter: drop-shadow(0 0 12px rgba(150, 225, 255, .85));
+}
+.tag-variant.tv-diamond { color: #bfeeff; text-shadow: 0 0 9px rgba(150, 225, 255, .95); }
+
+/* foil holográfico del inspector para DIAMANTE: arcoíris frío/brillante */
+#ci-card[data-variant="diamond"] #ci-holo { filter: brightness(.9) contrast(1.55) saturate(1.5) hue-rotate(-10deg); }
+#ci-card.holo-on[data-variant="diamond"] #ci-sparkle { opacity: .34; }
 
 /* ---------------- PANTALLA ONLINE ---------------- */
 

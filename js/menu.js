@@ -108,6 +108,12 @@ const SHOP_ITEMS = [
     img: 'assets/ilustraciones/mario.png',
     name: 'Expansión: Fuga del Manicomio',
     desc: 'MARIO MATAS como héroe jugable (poder: Trapicheo) y 13 cartas de pura movilidad: el ENCANE (cartas que se activan al descartarse), planes de fuga que devuelven esbirros con descuento, el Yogur de Piña, túneles y Eduardo de «seguridad».'
+  },
+  {
+    set: 'monzo', emoji: '🖨️', price: 700,
+    img: 'assets/ilustraciones/monzo.png',
+    name: 'Mazo: La Impresora 3D',
+    desc: 'JORGE MONZO como héroe jugable (poder: Imprimir en 3D) y 12 cartas con la mecánica IMPRIMIR (generan fichas impresas), pedos, calvicie, Counter-Strike, WoW Classic y Peter el gato gordo.'
   }
 ];
 
@@ -636,11 +642,14 @@ function storyIsRevealed(id) {
 /* marcar un enemigo como derrotado y desbloquear su mazo */
 function storyDefeat(id) {
   if (!Save.story.defeated.includes(id)) Save.story.defeated.push(id);
-  const e = storyEnemies().find(x => x.id === id);
-  if (e && e.desbloquea && !Save.ownedSets.includes(e.desbloquea)) {
-    Save.ownedSets.push(e.desbloquea);
-  }
+  /* vencer NO regala el mazo: desbloquea su COMPRA en la tienda (deriva de
+     los enemigos derrotados, ver deckPurchaseUnlocked) */
   persistSave();
+}
+
+/* ¿se puede COMPRAR ya el mazo de este set? (su paciente está derrotado) */
+function deckPurchaseUnlocked(set) {
+  return storyEnemies().some(e => e.desbloquea === set && Save.story.defeated.includes(e.id));
 }
 
 /* empezar la batalla contra un enemigo concreto */
@@ -756,9 +765,13 @@ function renderShop() {
   const storySets = storyUnlockSets();
   const entries = [];
   for (const item of SHOP_ITEMS) {
-    if (!storySets.has(item.set)) entries.push({ type: 'buy', item });
+    if (!storySets.has(item.set)) { entries.push({ type: 'buy', item }); continue; } // expansiones: siempre
+    /* mazo de historia: comprable solo si venciste a su paciente y no lo tienes */
+    if (Save.ownedSets.includes(item.set)) continue;
+    if (deckPurchaseUnlocked(item.set)) entries.push({ type: 'buy', item });
   }
-  const lockedMazos = [...storySets].some(s => !Save.ownedSets.includes(s));
+  /* misterio: queda algún mazo de historia por desbloquear (paciente sin vencer) */
+  const lockedMazos = [...storySets].some(s => !Save.ownedSets.includes(s) && !deckPurchaseUnlocked(s));
   if (lockedMazos) entries.push({ type: 'locked' });
 
   const pages = Math.max(1, Math.ceil(entries.length / 3));
@@ -791,7 +804,7 @@ function renderShop() {
       a.innerHTML = `<span class="slot-emoji">🔒</span>`;
       t.innerHTML = `
         <div class="ss-name">🔒 MAZOS BLOQUEADOS</div>
-        <div class="ss-desc">Los mazos de los pacientes no están a la venta. <b>Juega al Modo Historia</b> y véncelos para quedarte con su mazo.</div>`;
+        <div class="ss-desc">Vence a los pacientes en el <b>Modo Historia</b> para desbloquear la <b>compra</b> de sus mazos aquí.</div>`;
       /* el botón verde pintado del fondo se deja vacío (sin precio) */
       b.classList.add('blocked');
       b.textContent = '';

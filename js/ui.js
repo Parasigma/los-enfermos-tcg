@@ -117,19 +117,37 @@ Hooks.gameOver = winner => {
 
 /* ---------------- CONSTRUCCIÓN DE ELEMENTOS ---------------- */
 
-/* ilustración con respaldo: si la imagen no existe aún, se ve el emoji */
-function artHTML(d) {
-  const url = (typeof ILUSTRACIONES !== 'undefined' && ILUSTRACIONES[d.id]) || null;
-  const img = url
-    ? `<img class="art-img" src="${url}" alt=""
+/* ilustración con respaldo: si la imagen no existe aún, se ve el emoji.
+   Las cartas DIAMANTE usan una ilustración ANIMADA (webp) de
+   assets/ilustraciones/diamond/<id>.webp; si no existe, cae a la normal. */
+function artHTML(d, variant) {
+  const base = (typeof ILUSTRACIONES !== 'undefined' && ILUSTRACIONES[d.id]) || null;
+  const emoji = `<span class="art-emoji">${d.emoji}</span>`;
+  if (variant === 'diamond') {
+    const webp = 'assets/ilustraciones/diamond/' + d.id + '.webp';
+    const onerr = base
+      ? `this.onerror=function(){this.remove()};this.src='${base}'`
+      : `this.remove()`;
+    return `<img class="art-img" src="${webp}" alt=""
+       onload="this.parentElement.classList.add('has-img')"
+       onerror="${onerr}">${emoji}`;
+  }
+  const img = base
+    ? `<img class="art-img" src="${base}" alt=""
          onload="this.parentElement.classList.add('has-img')"
          onerror="this.remove()">`
     : '';
-  return `${img}<span class="art-emoji">${d.emoji}</span>`;
+  return `${img}${emoji}`;
+}
+
+/* partículas de energía que suben en bucle (cartas DIAMANTE) */
+function diamondSparklesHTML() {
+  return '<div class="dia-fx"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>';
 }
 
 function cardInnerHTML(c) {
   const d = c.def || c;
+  const variant = (typeof cardVariant === 'function') ? cardVariant(c.id || d.id) : null;
   const cost = (c.def && typeof c.costMod === 'number') ? cardCost(c) : d.cost;
   const discounted = c.def && c.costMod < 0;
   let stats = '';
@@ -142,11 +160,12 @@ function cardInnerHTML(c) {
   const si = typeof cardSetInfo === 'function' ? cardSetInfo(d.id) : null;
   return `
     <div class="cost ${discounted ? 'discount' : ''}">${cost}</div>
-    <div class="art">${artHTML(d)}</div>
+    <div class="art">${artHTML(d, variant)}</div>
     <div class="name">${d.name}</div>
     <div class="text">${d.text || ''}</div>
     ${stats}
-    ${si ? `<div class="set-tag st-${si.kind}" title="${si.desc}">${si.tag}</div>` : ''}`;
+    ${si ? `<div class="set-tag st-${si.kind}" title="${si.desc}">${si.tag}</div>` : ''}
+    ${variant === 'diamond' ? diamondSparklesHTML() : ''}`;
 }
 
 function cardEl(c) {
@@ -185,11 +204,12 @@ function minionEl(m, mine) {
     (G && G.current === m.owner && m.attacksThisTurn > 0);
   if (inactive && !el.classList.contains('can-attack')) el.classList.add('inactive');
   el.innerHTML = `
-    <div class="m-art">${artHTML(m.def)}</div>
+    <div class="m-art">${artHTML(m.def, mv)}</div>
     ${m.taunt ? '<div class="m-taunt">🛡️</div>' : ''}
     ${m.stench ? '<div class="m-stench" title="Olor a Peo: recibe 1 de daño al final del turno de su dueño">💨</div>' : ''}
     <div class="stat atk ${buffedA ? 'buffed' : ''}">${m.attack}</div>
-    <div class="stat hp ${hurt ? 'hurt' : ''} ${buffedH ? 'buffed' : ''}">${m.health}</div>`;
+    <div class="stat hp ${hurt ? 'hurt' : ''} ${buffedH ? 'buffed' : ''}">${m.health}</div>
+    ${mv === 'diamond' ? diamondSparklesHTML() : ''}`;
   el.addEventListener('mouseenter', () => showPreviewMinion(m));
   el.addEventListener('mouseleave', hidePreview);
   addLongPress(el, () => { abortDrag(); openCardInspector({ def: m.def, id: m.id, costMod: 0 }); });
@@ -1072,7 +1092,7 @@ async function onEndTurn() {
   endTurn(G);
   render();
   if (!G.over) {
-    banner('Turno de Nikuman 🖤');
+    banner('Turno de ' + G.players[1].hero.def.name.split(' «')[0]);
     await aiTakeTurn(G);
   }
   busy = false;
@@ -1130,7 +1150,7 @@ function showEnd(winner) {
       const wasNew = !Save.story.defeated.includes(enemy.id);
       storyDefeat(enemy.id);
       if (wasNew && enemy.desbloquea && SETS[enemy.desbloquea]) {
-        msg += `<br><span class="unlock-note">🔓 Mazo desbloqueado: <b>${SETS[enemy.desbloquea].name}</b></span>`;
+        msg += `<br><span class="unlock-note">🔓 Desbloqueada la COMPRA de <b>${SETS[enemy.desbloquea].name}</b> — cómpralo en la Tienda de Mazos.</span>`;
       }
       const done = storyChapterComplete();
       if (done) {
@@ -1203,12 +1223,12 @@ function openCardInspector(c, variantOverride) {
     + '<div class="ci-fx" id="ci-holo"></div><div class="ci-fx" id="ci-sparkle"></div><div id="ci-glare"></div>';
   if (variantOverride !== undefined) {
     const el = card.querySelector('.card');
-    el.classList.remove('v-brillante', 'v-dorada', 'v-alterada', 'v-foil');
+    el.classList.remove('v-brillante', 'v-dorada', 'v-alterada', 'v-foil', 'v-diamond');
     if (variantOverride) el.classList.add('v-' + variantOverride);
   }
   /* activa el foil holográfico si la carta es especial (foil/dorada/etc.) */
   const cardEl = card.querySelector('.card');
-  const variant = ['v-foil', 'v-dorada', 'v-brillante', 'v-alterada'].find(v => cardEl && cardEl.classList.contains(v));
+  const variant = ['v-foil', 'v-dorada', 'v-brillante', 'v-alterada', 'v-diamond'].find(v => cardEl && cardEl.classList.contains(v));
   card.classList.toggle('holo-on', !!variant);
   card.dataset.variant = variant ? variant.slice(2) : '';
   card.style.setProperty('--gx', '50%');

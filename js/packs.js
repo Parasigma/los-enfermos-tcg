@@ -18,7 +18,7 @@ const PACK_SIZE = 5;
 /* MODO PRUEBA: sobres gratis ILIMITADOS para testear.
    En true solo para desarrollo; en el juego real va en false:
    2 sobres gratis al día y los demás a PACK_PRICE 💊. */
-const PACKS_TEST_MODE = false;
+const PACKS_TEST_MODE = true;
 
 /* probabilidad de rareza por hueco del sobre (en %) */
 const PACK_RARITY_ODDS = [
@@ -28,19 +28,21 @@ const PACK_RARITY_ODDS = [
   ['legendaria', 3]
 ];
 
-/* versiones especiales, de más rara a menos (en % por carta) */
+/* GRADOS especiales de carta, de MÁS raro a menos (en % por carta).
+   Jerarquía: normal < foil < alterada < dorada < DIAMOND (el más raro). */
 const VARIANT_ODDS = [
-  ['foil', 0.5],
-  ['alterada', 1.0],
-  ['dorada', 2.0],
-  ['brillante', 4.0]
+  ['diamond', 0.15],
+  ['dorada', 0.8],
+  ['alterada', 2.0],
+  ['foil', 4.0]
 ];
 
 const VARIANT_INFO = {
-  brillante: { rank: 1, label: '✨ BRILLANTE' },
-  dorada:    { rank: 2, label: '🏆 DORADA' },
+  brillante: { rank: 1, label: '✨ BRILLANTE' },   // legado: ya no se reparte
+  foil:      { rank: 2, label: '🌈 FOIL' },
   alterada:  { rank: 3, label: '🌀 ALTERADA' },
-  foil:      { rank: 4, label: '🌈 FOIL' }
+  dorada:    { rank: 4, label: '🏆 DORADA' },
+  diamond:   { rank: 5, label: '💎 DIAMANTE' }
 };
 
 function todayStr() {
@@ -286,13 +288,14 @@ function showPackReveal() {
     const face = cardEl(fake);
     face.classList.remove('hand-card');
     /* fuerza la versión especial que ha salido en ESTE sobre */
-    face.classList.remove('v-brillante', 'v-dorada', 'v-alterada', 'v-foil');
+    face.classList.remove('v-brillante', 'v-dorada', 'v-alterada', 'v-foil', 'v-diamond');
     if (c.variant) face.classList.add('v-' + c.variant);
-    /* las cartas DORADAS asoman ya con el reverso dorado: pura tentación */
+    /* las DORADAS/DIAMANTE asoman ya con su reverso especial: pura tentación */
+    const backCls = c.variant === 'dorada' ? ' gold' : c.variant === 'diamond' ? ' diamond' : '';
     wrap.innerHTML = `
       <div class="flip3d">
         <div class="flip-inner">
-          <div class="flip-back card-reverse${c.variant === 'dorada' ? ' gold' : ''}"></div>
+          <div class="flip-back card-reverse${backCls}"></div>
           <div class="flip-front"></div>
         </div>
       </div>
@@ -347,7 +350,13 @@ function revealFx(wrap, c) {
   if (c.variant) bits.push(`<span class="tag-variant tv-${c.variant}">${VARIANT_INFO[c.variant].label}</span>`);
   tag.innerHTML = bits.join(' ');
 
-  if (c.variant === 'foil') {
+  if (c.variant === 'diamond') {
+    vfxBurst(x, y, ['💎', '✨', '💫', '🌈'], 18, { dist: 120 });
+    vfxRise(x, y, ['💎', '✨'], 10);
+    vfxFlash('rgba(150, 225, 255, .4)');
+    if (typeof VFX !== 'undefined') { VFX.magic(x, y, VFX.COL.white, { big: true }); VFX.magic(x, y, '150,225,255', { big: true }); }
+    Sfx.play('win');
+  } else if (c.variant === 'foil') {
     vfxBurst(x, y, ['🌈', '✨', '💫'], 14, { dist: 100 });
     vfxFlash('rgba(180, 120, 255, .35)');
     Sfx.play('win');
