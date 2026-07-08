@@ -1252,9 +1252,12 @@ function openCardInspector(c, variantOverride) {
     const d = c.def || c;
     const base = (typeof ILUSTRACIONES !== 'undefined' && ILUSTRACIONES[d.id]) || null;
     $('#ci-holder').style.perspective = '743px';
-    Card3D.open($('#ci-holder'),
-      { url: 'assets/ilustraciones/diamond/' + d.id + '.webp', fallback: base, emoji: d.emoji },
-      card);
+    Card3D.open($('#ci-holder'), {
+      video: 'assets/ilustraciones/' + d.id + '.webm',      // ilustración animada (en bucle)
+      url: 'assets/ilustraciones/diamond/' + d.id + '.webp',
+      fallback: base,
+      emoji: d.emoji
+    }, card);
   } else {
     $('#ci-holder').style.perspective = '';
   }

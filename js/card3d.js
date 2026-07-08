@@ -5,23 +5,30 @@
    El modelo (assets/3D/diamond_card.glb) ES el fondo de la
    carta: marco de diamante opaco con el HUECO para la
    ilustración. Se monta de atrás a delante:
-     · ILUSTRACIÓN: plano dentro de la escena 3D, detrás del
-       marco; asoma por el hueco y rota con el modelo. Si la
-       carta no tiene imagen real, se genera con su emoji
-       sobre el fondo base (igual que la carta plana).
+     · ILUSTRACIÓN: plano dentro de la escena 3D, justo detrás
+       del hueco. Si existe assets/ilustraciones/<id>.webm se
+       reproduce EN BUCLE (animada); si no, la imagen fija, y
+       si tampoco, el emoji sobre el fondo base.
+       Se recorta tipo «object-fit: cover» (no se deforma).
      · MARCO 3D (el glb) por encima, opaco.
-     · TEXTO en HTML por delante (#ci-card): el bucle de
-       render mueve el texto con EXACTAMENTE el mismo giro
-       que el modelo, así van pegados.
+     · TEXTO en HTML por delante (#ci-card), movido por el
+       bucle de render con el mismo giro exacto del modelo.
    three.js autoalojado (offline). Sin WebGL, carta plana.
    ========================================================= */
 const Card3D = (() => {
   let renderer, scene, camera, pivot, holder, model, illo, illoMat, canvas;
-  let rawSize = null;
-  let textEl = null;                       // capa de texto que giramos en sincronía
-  let bgImg = null, bgReady = false;       // fondo base para cartas sin imagen
+  let rawSize = null, illoSrc = null, illoVideo = null, maxAniso = 1;
+  let textEl = null;
+  let bgImg = null, bgReady = false;
   const CAM_Z = 6, FOV = 30, RAD2DEG = 180 / Math.PI;
-  const ART = { l: 0.13, r: 0.845, t: 0.085, b: 0.383, pad: 1.08 };
+  /* hueco real del modelo, medido sobre el render (fracciones de la carta) */
+  const ART = { l: 0.125, r: 0.8714, t: 0.093, b: 0.3794 };
+  /* La ilustración va al FONDO del modelo (z = -grosor/2): así queda siempre
+     DETRÁS del relieve y el hueco se ve con su forma real (arco con las dos
+     esquinas de abajo). Si se acerca más, el plano asoma por delante del
+     marco y tapa esas esquinas. 1.10 cubre el hueco entero al girar. */
+  const ILLO_MARGIN = 1.10;
+  let planeAspect = 1.833;
   let ready = false, loading = false, active = false, rafId = null;
   let pending = [], pendingArt = null;
   let tRX = 0, tRY = 0, cRX = 0, cRY = 0;
@@ -50,6 +57,7 @@ const Card3D = (() => {
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
     if ('toneMapping' in renderer) { renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9; }
+    try { maxAniso = renderer.capabilities.getMaxAnisotropy() || 1; } catch (e) { maxAniso = 1; }
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(FOV, 0.72, 0.1, 100);
@@ -103,16 +111,29 @@ const Card3D = (() => {
     }, undefined, () => { loading = false; pending = []; });
   }
 
-  function setTex(tex) {
-    if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
-    else if ('encoding' in tex) tex.encoding = THREE.sRGBEncoding;
-    illoMat.map = tex; illoMat.opacity = 1; illoMat.needsUpdate = true;
+  /* recorte tipo «object-fit: cover» con encuadre alto (object-position 50% 18%,
+     igual que la carta plana): la ilustración no se deforma nunca */
+  function applyCover(tex, iw, ih, pa) {
+    if (!tex || !iw || !ih) return;
+    const ia = iw / ih;
+    if (ia > pa) { const r = pa / ia; tex.repeat.set(r, 1); tex.offset.set((1 - r) / 2, 0); }
+    else { const r = ia / pa; tex.repeat.set(1, r); tex.offset.set(0, 0.82 * (1 - r)); }
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.needsUpdate = true;
   }
 
-  /* textura de reserva: emoji sobre el fondo base (cartas sin imagen real,
-     como en la ventana de arte de la carta plana) */
+  function setTex(tex, w, h) {
+    if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
+    else if ('encoding' in tex) tex.encoding = THREE.sRGBEncoding;
+    tex.anisotropy = maxAniso;
+    illoSrc = { w: w, h: h };
+    if (illoMat.map && illoMat.map !== tex) illoMat.map.dispose();
+    illoMat.map = tex; illoMat.opacity = 1; illoMat.needsUpdate = true;
+    applyCover(tex, w, h, planeAspect);
+  }
+
   function emojiTexture(emoji) {
-    const w = 512, h = 303;
+    const w = 512, h = 279;                       // mismo aspecto que el hueco
     const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
     const cx = cv.getContext('2d');
     if (bgReady) {
@@ -120,37 +141,76 @@ const Card3D = (() => {
       const dw = bgImg.width * s, dh = bgImg.height * s;
       cx.drawImage(bgImg, (w - dw) / 2, (h - dh) / 2, dw, dh);
     } else { cx.fillStyle = '#2e2620'; cx.fillRect(0, 0, w, h); }
-    cx.font = Math.round(h * 0.72) + 'px serif';
+    cx.font = Math.round(h * 0.78) + 'px serif';
     cx.textAlign = 'center'; cx.textBaseline = 'middle';
     cx.fillText(emoji || '❓', w / 2, h * 0.54);
     return new THREE.CanvasTexture(cv);
   }
 
+  function stopVideo() {
+    if (!illoVideo) return;
+    try { illoVideo.pause(); illoVideo.removeAttribute('src'); illoVideo.load(); } catch (e) {}
+    illoVideo = null;
+  }
+
+  /* ilustración animada: se reproduce sola y EN BUCLE (silenciada, que es
+     lo que permiten los navegadores sin gesto del usuario) */
+  function loadVideo(url, onOk, onFail) {
+    const v = document.createElement('video');
+    v.muted = true; v.defaultMuted = true; v.loop = true;
+    v.autoplay = true; v.playsInline = true; v.preload = 'auto';
+    v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('loop', '');
+    let done = false;
+    v.addEventListener('loadeddata', () => {
+      if (done) return; done = true;
+      const p = v.play(); if (p && p.catch) p.catch(() => {});
+      onOk(v);
+    });
+    v.addEventListener('error', () => { if (done) return; done = true; onFail(); });
+    v.src = url; v.load();
+  }
+
   function loadArt(art) {
     if (!illoMat || !art) return;
     illoMat.opacity = 0;
+    stopVideo();
     const tl = new THREE.TextureLoader();
-    const useEmoji = () => setTex(emojiTexture(art.emoji));
-    tl.load(art.url, setTex, undefined, () => {
-      if (art.fallback) tl.load(art.fallback, setTex, undefined, useEmoji);
+    const useEmoji = () => setTex(emojiTexture(art.emoji), 512, 279);
+    const useImg = (url, next) => tl.load(url,
+      t => setTex(t, t.image.width, t.image.height), undefined, next);
+    const tryImgs = () => {
+      if (art.url) useImg(art.url, () => art.fallback ? useImg(art.fallback, useEmoji) : useEmoji());
+      else if (art.fallback) useImg(art.fallback, useEmoji);
       else useEmoji();
-    });
+    };
+    if (art.video) {
+      loadVideo(art.video, v => {
+        illoVideo = v;
+        setTex(new THREE.VideoTexture(v), v.videoWidth, v.videoHeight);
+      }, tryImgs);
+    } else tryImgs();
   }
 
-  /* escala el marco para llenar el canvas y coloca la ilustración en el
-     hueco. Se recalcula al redimensionar (depende del aspecto). */
+  /* escala el marco para llenar el canvas y encaja la ilustración en el hueco.
+     El plano va algo hundido, así que se compensa la perspectiva (k) para que
+     su proyección cubra la boca del hueco entera (incluidas las esquinas). */
   function fit() {
     if (!model || !rawSize) return;
     const vFov = FOV * Math.PI / 180;
     const visH = 2 * Math.tan(vFov / 2) * CAM_Z;
     const visW = visH * (camera.aspect || 0.72);
-    const f = 0.995;
-    const cardW = visW * f, cardH = visH * f;
-    holder.scale.set(cardW / rawSize.x, cardH / rawSize.y, cardH / rawSize.y);
-    if (illo) {
-      illo.position.set(((ART.l + ART.r) / 2 - 0.5) * cardW, (0.5 - (ART.t + ART.b) / 2) * cardH, 0);
-      illo.scale.set((ART.r - ART.l) * cardW * ART.pad, (ART.b - ART.t) * cardH * ART.pad, 1);
-    }
+    const f = 0.995, cardW = visW * f, cardH = visH * f;
+    const sY = cardH / rawSize.y;
+    holder.scale.set(cardW / rawSize.x, sY, sY);
+    if (!illo) return;
+    const depth = rawSize.z * sY;
+    const zIllo = -depth / 2;                   // al fondo: siempre detrás del marco
+    const k = (CAM_Z - zIllo) / CAM_Z;          // compensa la perspectiva del hundido
+    const hw = (ART.r - ART.l) * cardW, hh = (ART.b - ART.t) * cardH;
+    illo.position.set(((ART.l + ART.r) / 2 - 0.5) * cardW * k, (0.5 - (ART.t + ART.b) / 2) * cardH * k, zIllo);
+    illo.scale.set(hw * k * ILLO_MARGIN, hh * k * ILLO_MARGIN, 1);
+    planeAspect = hw / hh;
+    if (illoSrc && illoMat.map) applyCover(illoMat.map, illoSrc.w, illoSrc.h, planeAspect);
   }
 
   function resize() {
@@ -170,17 +230,20 @@ const Card3D = (() => {
       const r = canvas.getBoundingClientRect();
       if (r.width && (Math.abs(r.width - lastW) > 1 || Math.abs(r.height - lastH) > 1)) resize();
     }
+    /* sube el fotograma nuevo del vídeo a la textura */
+    if (illoVideo && illoMat.map && illoMat.map.isVideoTexture && illoVideo.readyState >= 2) {
+      illoMat.map.needsUpdate = true;
+    }
     cRX += (tRX - cRX) * 0.16;
     cRY += (tRY - cRY) * 0.16;
     if (pivot) { pivot.rotation.x = cRX; pivot.rotation.y = cRY; }
-    /* mueve el texto con EXACTAMENTE el mismo giro que el modelo */
     if (textEl) textEl.style.transform = 'rotateY(' + (cRY * RAD2DEG) + 'deg) rotateX(' + (cRX * RAD2DEG) + 'deg)';
     renderer.render(scene, camera);
   }
 
   return {
     supported,
-    /* art = { url, fallback, emoji }; text = capa de texto a sincronizar */
+    /* art = { video, url, fallback, emoji }; text = capa de texto a sincronizar */
     open(container, art, text) {
       if (!supported()) return false;
       active = true;
@@ -199,12 +262,12 @@ const Card3D = (() => {
       active = false;
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
       if (canvas && canvas.parentElement) canvas.parentElement.removeChild(canvas);
+      stopVideo();
       if (illoMat) { illoMat.opacity = 0; if (illoMat.map) { illoMat.map.dispose(); illoMat.map = null; } }
+      illoSrc = null;
       if (textEl) { textEl.style.transform = ''; textEl = null; }
       tRX = tRY = cRX = cRY = 0;
     },
-    /* giro algo restringido para que texto y 3D no canten al inclinar
-       (rotateY ~35°, rotateX ~27° a tope) */
     setTilt(cx, cy) { tRY = cx * 0.62; tRX = -cy * 0.48; },
     resize
   };

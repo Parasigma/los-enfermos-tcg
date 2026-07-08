@@ -65,9 +65,9 @@ HISTORIA.capitulo1 = {
       emoji: '🤓', foto: 'assets/ilustraciones/nikuman.png',
       reto: 'El pullador del TOP 1. Ojo con el yogur de piña.',
       intro: [
-        { quien: 'rival', espera: 1.2, duracion: 4.5, texto: '¿Otra vez tú, <b>Fiti</b>? Tu manicomio de juguete no puede conmigo. Lo dice el <b>TOP 1 del ranking</b>.' },
+        { quien: 'rival', espera: 1.2, duracion: 4.5, audio: 'Nikuman1', texto: '¿Otra vez tú, <b>Fiti</b>? Tu manicomio de juguete no puede conmigo. Para eso soy el brujo numero 1 del POE</b>.' },
         { quien: 'yo', espera: 0.7, duracion: 4.5, audio: 'fiti1', texto: 'Nikuman... tu habitación está lista. Acolchada, tranquila, y con visita de tus cinco gatos los domingos.' },
-        { quien: 'rival', espera: 0.7, duracion: 5, texto: 'Ni se te ocurra servir <b>yogur de piña</b> en ese antro... ¿EH? ¿POR QUÉ SONRÍES? ¡Ya me he encanado!' },
+        { quien: 'rival', espera: 0.7, duracion: 5, audio: 'Nikuman2', texto: 'Ni se te ocurra servir <b>yogur de piña</b> en ese antro... ¿EH? ¿POR QUÉ SONRÍES? ¡Ya me he encanado!' },
         { quien: 'yo', espera: 0.6, duracion: 3.5, audio:'fiti2', texto: 'Celadores, preparen el ingreso. <i>Esto se resuelve con cartas.</i>' }
       ],
       victoria: 'El Director firma el ingreso de Nikuman. Un paciente nuevo... y sus 5 gatos de visita los domingos.'
@@ -81,7 +81,7 @@ HISTORIA.capitulo1 = {
         { quien: 'rival', espera: 1, duracion: 4.5, texto: '¿Ingresar YO? Acabo de pedir <b>tres kebabs</b>. Es un NO rotundo, cacho lacón.' },
         { quien: 'yo', espera: 0.7, duracion: 4.5, audio: 'fiti_kevin_1', texto: 'Kevin tío, que te has cagado mientras hablabas... En el manicomio pienso prohibir los pedos.' },
         { quien: 'rival', espera: 0.7, duracion: 4.5, texto: 'Te voy a soltar un <b>pedo proteico</b> que te manda al turno 10. <i>*PFFFFFF*</i>' },
-        { quien: 'yo', espera: 0.6, duracion: 3.5, texto: 'Celadores, MASCARILLAS. Vamos a por él.' }
+        { quien: 'yo', espera: 0.6, duracion: 3.5, audio: 'fiti_kevin_2', texto: 'Celadores, MASCARILLAS. Vamos a por él.' }
       ],
       victoria: 'Kevin entra en el sanatorio dejando una estela aromática inolvidable.'
     },
@@ -91,8 +91,8 @@ HISTORIA.capitulo1 = {
       emoji: '🖨️', foto: 'assets/ilustraciones/monzo.png',
       reto: 'Calvo, pedorro y con una impresora 3D que no para.',
       intro: [
-        { quien: 'rival', espera: 1, duracion: 4.5, texto: 'Monzo presente. Mis cuescos ya han hecho saltar <b>tres alarmas de incendios</b>.' },
-        { quien: 'yo', espera: 0.7, duracion: 4, texto: 'Por eso mismo tengo lista una sala insonorizada para ti, Jorge.' }
+        { quien: 'rival', espera: 1, duracion: 4.5, texto: 'El máquina ya está presente. Mis cuescos ya han hecho saltar <b>tres alarmas de incendios</b>.' },
+        { quien: 'yo', espera: 0.7, duracion: 4, audio: 'fiti_jorge_1', texto: 'Por eso mismo tengo lista una sala insonorizada para ti, Giorgginni.' }
       ],
       victoria: 'Jorge Monzo ingresa. La sala insonorizada ya vibra por dentro.'
     },
