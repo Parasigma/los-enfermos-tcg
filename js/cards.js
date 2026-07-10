@@ -94,6 +94,38 @@ const HEROES = {
       aiTarget(g, p) { return p.board.slice().sort((a, b) => b.attack - a.attack)[0] || null; }
     }
   },
+  paquitoHero: {
+    id: 'paquitoHero',
+    name: 'Paquito Serna «La Bestia»',
+    title: 'Mudanzas Serna: nosotros no necesitamos grúa',
+    portrait: '💪',
+    power: {
+      /* el mudancero: levanta muebles a pulso y hace muralla con ellos */
+      name: 'A Pulso', cost: 2, icon: '📦', target: null,
+      desc: 'Levanta una «Caja de la Mudanza» 0/2 con Provocar y la planta en tu tablero.',
+      use(g, p) { summon(g, p, 'cajaMudanza'); },
+      aiWants(g, p) { return p.board.length < 7; }
+    }
+  },
+  marioSupremo: {
+    id: 'marioSupremo',
+    name: 'Mario Matas «El Paciente Supremo»',
+    title: 'La verdadera mano que mueve los hilos',
+    portrait: '🧠',
+    power: {
+      /* el titiritero: te roba hasta las ideas (todos creen que fue Fiti) */
+      name: 'Mover los Hilos', cost: 2, icon: '🎩', target: null,
+      desc: 'Añade a tu mano una copia de una carta al azar de la mano del rival. Luego dirá que la idea fue de Fiti.',
+      use(g, p) {
+        const opp = g.players[1 - p.idx];
+        if (!opp.hand.length || p.hand.length >= 10) return;
+        const c = opp.hand[Math.floor(Math.random() * opp.hand.length)];
+        p.hand.push(makeCardInstance(c.id));
+        log(g, `🎩 El Paciente Supremo copia «${c.def.name}»... y firma como Fiti.`);
+      },
+      aiWants(g, p) { return g.players[1 - p.idx].hand.length > 0 && p.hand.length < 9; }
+    }
+  },
   rabascoHero: {
     id: 'rabascoHero',
     name: 'Rabasco «El Cornudo»',
@@ -752,7 +784,7 @@ const CARDS = {
 
   tunelCuchara: {
     id: 'tunelCuchara', clazz: 'fuga', type: 'spell', rarity: 'épica',
-    name: 'Túnel con Cuchara', cost: 4, emoji: '🥄',
+    name: 'Túnel con Cuchara', cost: 3, emoji: '🥄',
     text: '¡Todos fuera! Devuelve TODOS tus esbirros a tu mano: costarán <b>(1)</b> menos.',
     flavor: 'Tres años cavando. La salida daba a la cocina.',
     spell(g, p) { for (const m of [...p.board]) returnToHand(g, m, -1); },
@@ -879,7 +911,7 @@ const CARDS = {
 
   impresora3d: {
     id: 'impresora3d', clazz: 'monzo', type: 'minion', rarity: 'rara',
-    name: 'La Impresora 3D', cost: 3, attack: 2, health: 4, emoji: '🖨️',
+    name: 'La Impresora 3D', cost: 3, attack: 2, health: 3, emoji: '🖨️',
     text: 'Al final de tu turno, <b>IMPRIME</b> una carta al azar.',
     flavor: 'Lleva imprimiendo la misma figurita desde el martes. Va por el intento 14.',
     endTurn(g, p, m) { imprimirRandom(g, p); }
@@ -895,7 +927,7 @@ const CARDS = {
 
   exSemipro: {
     id: 'exSemipro', clazz: 'monzo', type: 'minion', rarity: 'rara',
-    name: 'Ex-Semipro de CS', cost: 3, attack: 3, health: 3, emoji: '🔫',
+    name: 'Ex-Semipro de CS', cost: 3, attack: 3, health: 2, emoji: '🔫',
     charge: true,
     text: '<b>Embestida.</b> Cuando ataca, <b>IMPRIME</b> una «Herramienta».',
     flavor: 'Llegó a semi-pro. Hoy hace clutches en la ranked de los martes.',
@@ -913,7 +945,7 @@ const CARDS = {
 
   manualImpresora: {
     id: 'manualImpresora', clazz: 'monzo', type: 'spell', rarity: 'épica',
-    name: 'Manual de la Impresora', cost: 2, emoji: '📘',
+    name: 'Manual de la Impresora', cost: 4, emoji: '📘',
     text: '<b>IMPRIME</b> 2 cartas. Mientras esté en tu mano, <b>IMPRIME</b> una cada vez que robas.',
     flavor: '350 páginas. Nadie lo ha leído. Todos lo tienen abierto por el capítulo de la cama caliente.',
     spell(g, p) { imprimirRandom(g, p); imprimirRandom(g, p); },
@@ -1007,6 +1039,481 @@ const CARDS = {
     aiWants(g, p) { return p.hand.length <= 6; }
   },
 
+  /* ============ EXPANSIÓN: LOS PICADOS (Rabasco) ============
+     Mecánica propia: «PICADO» — si el esbirro sobrevive a un daño,
+     se pica y gana ataque (def.onDamaged). Agresivo y con cuerno. */
+
+  moscaCojonera: {
+    id: 'moscaCojonera', clazz: 'picado', type: 'minion', rarity: 'común',
+    name: 'Mosca Cojonera', cost: 1, attack: 1, health: 2, emoji: '🪰',
+    text: '<b>Picado:</b> cuando sobrevive a un daño, gana <b>+1/+1</b>.',
+    flavor: 'Cuanto más la espantas, más vuelve. Como las pullas de Nikuman.',
+    onDamaged(g, p, m) { m.attack += 1; m.health += 1; m.maxHealth += 1; log(g, `🪰 ${m.def.name} se pica: +1/+1.`); }
+  },
+
+  toqueCuerno: {
+    id: 'toqueCuerno', clazz: 'picado', type: 'spell', rarity: 'común',
+    name: 'Toque de Cuerno', cost: 1, emoji: '📯',
+    target: 'minion',
+    text: 'Inflige <b>1</b> de daño a un esbirro. Si es tuyo y sobrevive, se pica igual (activa su <b>Picado</b>).',
+    flavor: 'Un toquecito de nada. Con el cuerno. En toda la moral.',
+    spell(g, p, t) { dealDamage(g, t, 1); },
+    aiTarget(g, p) {
+      const mine = p.board.filter(m => m.def.onDamaged && m.health >= 2);
+      if (mine.length) return mine.sort((a, b) => b.attack - a.attack)[0];
+      const opp = g.players[1 - p.idx];
+      const kill = opp.board.filter(m => m.health <= 1).sort((a, b) => b.attack - a.attack);
+      return kill[0] || null;
+    },
+    aiWants(g, p) {
+      return p.board.some(m => m.def.onDamaged && m.health >= 2) ||
+        g.players[1 - p.idx].board.some(m => m.health <= 1);
+    }
+  },
+
+  borregoPicado: {
+    id: 'borregoPicado', clazz: 'picado', type: 'minion', rarity: 'común',
+    name: 'Borrego Picado', cost: 2, attack: 2, health: 3, emoji: '🐑',
+    text: '<b>Picado:</b> cuando sobrevive a un daño, gana <b>+2</b> de ataque.',
+    flavor: 'Primo de Rabasco. Mismo cuerno, menos flow.',
+    onDamaged(g, p, m) { m.attack += 2; log(g, `🐑 ${m.def.name} se encana: +2 de ataque.`); }
+  },
+
+  cabreoInstantaneo: {
+    id: 'cabreoInstantaneo', clazz: 'picado', type: 'spell', rarity: 'rara',
+    name: 'Cabreo Instantáneo', cost: 2, emoji: '💢',
+    target: 'friendlyMinion',
+    text: 'Un esbirro aliado gana <b>+2</b> de ataque y <b>Embestida</b>.',
+    flavor: 'De cero a encanado en 0,3 segundos. Récord del grupo.',
+    spell(g, p, t) { t.attack += 2; t.charge = true; t.sick = false; },
+    aiWants(g, p) { return p.board.some(m => m.sick && m.attack >= 2); },
+    aiTarget(g, p) { return p.board.filter(m => m.sick).sort((a, b) => b.attack - a.attack)[0] || p.board[0] || null; }
+  },
+
+  cuernoAfilado: {
+    id: 'cuernoAfilado', clazz: 'picado', type: 'weapon', rarity: 'rara',
+    name: 'El Cuerno Afilado', cost: 3, attack: 3, durability: 2, emoji: '🦯',
+    text: 'Artefacto <b>3/2</b>. Recién limado contra el bordillo.',
+    flavor: 'Rabasco lo afila cada noche mientras repasa la lista de agravios.',
+    aiWants(g, p) { return !p.hero.weapon; }
+  },
+
+  rabascoFurioso: {
+    id: 'rabascoFurioso', clazz: 'picado', type: 'minion', rarity: 'épica',
+    name: 'Rabasco Desatado', cost: 4, attack: 3, health: 5, emoji: '🐂',
+    text: '<b>Picado:</b> cuando sobrevive a un daño, gana <b>+2</b> de ataque. No le mires el cuerno.',
+    flavor: 'El nivel máximo de picado conocido por la ciencia.',
+    onDamaged(g, p, m) { m.attack += 2; log(g, `🐂 ¡${m.def.name} entra en cólera: +2 de ataque!`); }
+  },
+
+  /* ============ MAZO: EL TALLER DEL MOTERO (Víctor Lamas) ============
+     Tema: velocidad (Embestida), motos, y su don especial — todo lo
+     que «arregla» queda PEOR (sus reparaciones dañan) y luego se
+     reclama al seguro (robo de cartas). */
+
+  moteroNovato: {
+    id: 'moteroNovato', clazz: 'motero', type: 'minion', rarity: 'común',
+    name: 'Motero Novato', cost: 1, attack: 2, health: 1, emoji: '🛵',
+    charge: true,
+    text: '<b>Embestida</b>. Aún lleva la L en el casco.',
+    flavor: 'Se sacó el A2 al tercer intento. El examinador aún tiembla.'
+  },
+
+  llaveInglesa: {
+    id: 'llaveInglesa', clazz: 'motero', type: 'spell', rarity: 'común',
+    name: 'Apaño de Víctor', cost: 1, emoji: '🔧',
+    target: 'minion',
+    text: 'Víctor «arregla» un esbirro: inflige <b>2</b> de daño.',
+    flavor: 'Entró al taller por un ruidito. Salió sin motor.',
+    spell(g, p, t) { dealDamage(g, t, 2); },
+    aiTarget(g, p) {
+      const opp = g.players[1 - p.idx];
+      const kill = opp.board.filter(m => m.health <= 2).sort((a, b) => b.attack - a.attack);
+      return kill[0] || opp.board[0] || null;
+    },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length > 0; }
+  },
+
+  motoCross: {
+    id: 'motoCross', clazz: 'motero', type: 'minion', rarity: 'común',
+    name: 'Moto de Cross Prestada', cost: 2, attack: 3, health: 2, emoji: '🏍️',
+    charge: true,
+    text: '<b>Embestida</b>. Devolverla ya es otro tema.',
+    flavor: '«Es de un colega. Bueno, era.»'
+  },
+
+  electricidadEstatica: {
+    id: 'electricidadEstatica', clazz: 'motero', type: 'spell', rarity: 'rara',
+    name: 'Electricidad Estática', cost: 2, emoji: '⚡',
+    target: 'minion',
+    text: 'Inflige <b>3</b> de daño a un esbirro. Si lo destruye, <b>roba</b> una carta (el parte al seguro).',
+    flavor: 'Montó la gráfica nueva y PUM. «Era la camiseta», jura.',
+    spell(g, p, t) {
+      const hpAntes = t.health;
+      dealDamage(g, t, 3);
+      if (hpAntes <= 3) { drawCards(g, p, 1); log(g, '⚡ Víctor rellena el parte del seguro y cobra.'); }
+    },
+    aiTarget(g, p) {
+      const opp = g.players[1 - p.idx];
+      const kill = opp.board.filter(m => m.health <= 3).sort((a, b) => b.attack - a.attack);
+      return kill[0] || opp.board.slice().sort((a, b) => b.attack - a.attack)[0] || null;
+    },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length > 0; }
+  },
+
+  seCansaDeTodo: {
+    id: 'seCansaDeTodo', clazz: 'motero', type: 'spell', rarity: 'común',
+    name: 'Se Cansa de Todo', cost: 1, emoji: '🥱',
+    target: 'friendlyMinion',
+    text: 'Devuelve un esbirro aliado a tu mano y <b>roba</b> una carta.',
+    flavor: 'Lunes: pádel. Martes: dardos. Miércoles: nada, ya se aburrió.',
+    spell(g, p, t) { returnToHand(g, t, 0); drawCards(g, p, 1); },
+    aiWants(g, p) { return p.board.some(m => m.def.battlecry && m.health < m.maxHealth); },
+    aiTarget(g, p) { return p.board.filter(m => m.def.battlecry).sort((a, b) => b.def.cost - a.def.cost)[0] || null; }
+  },
+
+  cascoIntegral: {
+    id: 'cascoIntegral', clazz: 'motero', type: 'spell', rarity: 'común',
+    name: 'Casco Integral', cost: 2, emoji: '🪖',
+    target: 'friendlyMinion',
+    text: 'Un esbirro aliado gana <b>+0/+3</b> y <b>Provocar</b>.',
+    flavor: 'Homologado. Lo único homologado del taller.',
+    spell(g, p, t) { t.health += 3; t.maxHealth += 3; t.taunt = true; },
+    aiWants(g, p) { return p.board.length > 0; },
+    aiTarget(g, p) { return p.board.slice().sort((a, b) => b.attack - a.attack)[0] || null; }
+  },
+
+  mecanicoChapuzas: {
+    id: 'mecanicoChapuzas', clazz: 'motero', type: 'minion', rarity: 'rara',
+    name: 'Mecánico de Chapuzas', cost: 3, attack: 3, health: 3, emoji: '🧰',
+    text: '<b>Grito de Batalla:</b> «arregla» otro esbirro al azar: le inflige 1 de daño.',
+    flavor: 'Aprendió viendo tutoriales. A medias.',
+    battlecry(g, p, m) {
+      const all = [...g.players[0].board, ...g.players[1].board].filter(x => x !== m && !x.dead);
+      if (all.length) dealDamage(g, all[Math.floor(Math.random() * all.length)], 1);
+    }
+  },
+
+  derrape: {
+    id: 'derrape', clazz: 'motero', type: 'spell', rarity: 'rara',
+    name: 'Derrape en la Rotonda', cost: 3, emoji: '🌀',
+    text: 'Inflige <b>2</b> de daño a todos los esbirros enemigos.',
+    flavor: 'Entró a 90. La rotonda era de 30. Física básica.',
+    spell(g, p) {
+      const opp = g.players[1 - p.idx];
+      for (const m of [...opp.board]) dealDamage(g, m, 2);
+    },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length >= 2; }
+  },
+
+  motoTrucada: {
+    id: 'motoTrucada', clazz: 'motero', type: 'weapon', rarity: 'rara',
+    name: 'La Moto Trucada', cost: 3, attack: 3, durability: 2, emoji: '🛠️',
+    text: 'Artefacto <b>3/2</b>. Trucada por Víctor: nadie sabe cuánto durará.',
+    flavor: 'Le quitó el limitador. Y sin querer, los frenos.',
+    aiWants(g, p) { return !p.hero.weapon; }
+  },
+
+  reclamacionSeguro: {
+    id: 'reclamacionSeguro', clazz: 'motero', type: 'spell', rarity: 'épica',
+    name: 'Reclamación al Seguro', cost: 3, emoji: '📄',
+    target: 'friendlyMinion',
+    text: '<b>Destruye</b> un esbirro aliado («se rompió solo») y roba <b>3</b> cartas.',
+    flavor: 'El manicomio lo llama para arreglar cosas. Es para cobrar el seguro.',
+    spell(g, p, t) { t.health = 0; checkDeaths(g); drawCards(g, p, 3); },
+    aiWants(g, p) { return p.board.some(m => m.attack + m.health <= 3) && p.hand.length <= 6; },
+    aiTarget(g, p) { return p.board.slice().sort((a, b) => (a.attack + a.health) - (b.attack + b.health))[0] || null; }
+  },
+
+  rutaDominguera: {
+    id: 'rutaDominguera', clazz: 'motero', type: 'spell', rarity: 'rara',
+    name: 'Ruta Dominguera', cost: 4, emoji: '🛣️',
+    text: 'Invoca dos <b>Moteros del Grupo</b> 2/1 con <b>Embestida</b>.',
+    flavor: 'Salida: 9:00. Primera parada para almorzar: 9:20.',
+    spell(g, p) { summon(g, p, 'moterillo'); summon(g, p, 'moterillo'); }
+  },
+
+  victorLamas: {
+    id: 'victorLamas', clazz: 'motero', type: 'minion', rarity: 'legendaria',
+    name: 'Víctor, el Calvo Veloz', cost: 5, attack: 5, health: 4, emoji: '🏍️',
+    charge: true,
+    text: '<b>Embestida</b>. <b>Grito de Batalla:</b> equipa una «Moto Trucada» 3/2.',
+    flavor: 'La calva pulida reduce el coeficiente aerodinámico. Ciencia motera.',
+    battlecry(g, p, m) {
+      p.hero.weapon = { def: CARDS.motoTrucada, attack: 3, durability: 2 };
+      log(g, '🏍️ Víctor llega con la moto trucada... y te la presta.');
+      fx('equip', { owner: p.idx });
+    }
+  },
+
+  /* ============ MAZO: MUDANZAS SERNA (Paquito) ============
+     Tema: FUERZA BRUTA — esbirros gordos con Provocar, muebles
+     lanzados por la ventana y la sala de adamantium. Lento pero
+     imparable en el turno tardío. Lema: «no necesitamos grúa». */
+
+  romperCamisa: {
+    id: 'romperCamisa', clazz: 'mudanzas', type: 'spell', rarity: 'común',
+    name: 'Romper la Camisa', cost: 1, emoji: '👕',
+    target: 'friendlyMinion',
+    text: 'Un esbirro aliado flexiona: gana <b>+2</b> de ataque.',
+    flavor: 'Hizo el gesto de la foto y la camisa cedió por los dorsales.',
+    spell(g, p, t) { t.attack += 2; },
+    aiWants(g, p) { return p.board.length > 0; },
+    aiTarget(g, p) { return p.board.slice().sort((a, b) => b.health - a.health)[0] || null; }
+  },
+
+  mozoAlmacen: {
+    id: 'mozoAlmacen', clazz: 'mudanzas', type: 'minion', rarity: 'común',
+    name: 'Mozo de Mudanzas Serna', cost: 2, attack: 2, health: 3, emoji: '📦',
+    taunt: true,
+    text: '<b>Provocar</b>. Contratado por aguantar la mirada de Paquito.',
+    flavor: 'En la entrevista solo le preguntaron: «¿cuánto levantas?».'
+  },
+
+  flexionDorsales: {
+    id: 'flexionDorsales', clazz: 'mudanzas', type: 'spell', rarity: 'común',
+    name: 'Flexión de Dorsales', cost: 2, emoji: '💪',
+    text: 'Tu héroe se pone fuerte: <b>+3</b> de salud máxima y restaura <b>3</b>.',
+    flavor: 'La espalda de Paquito tiene su propio código postal.',
+    spell(g, p) { p.hero.maxHp += 3; heal(g, p.hero, 3); }
+  },
+
+  sofaCuestas: {
+    id: 'sofaCuestas', clazz: 'mudanzas', type: 'minion', rarity: 'común',
+    name: 'El del Sofá a Cuestas', cost: 3, attack: 2, health: 5, emoji: '🛋️',
+    taunt: true,
+    text: '<b>Provocar</b>. Cuarto piso sin ascensor y sin quejarse.',
+    flavor: 'El sofá cama pesa 120 kilos. Él lo llama «el ligerito».'
+  },
+
+  gestoFoto: {
+    id: 'gestoFoto', clazz: 'mudanzas', type: 'spell', rarity: 'rara',
+    name: 'El Gesto de la Foto', cost: 3, emoji: '📸',
+    text: 'Paquito posa: todos tus esbirros ganan <b>+1/+1</b>.',
+    flavor: 'Tres camisas rotas en lo que dura un «patata».',
+    spell(g, p) {
+      for (const m of p.board) { m.attack += 1; m.health += 1; m.maxHealth += 1; }
+    },
+    aiWants(g, p) { return p.board.length >= 2; }
+  },
+
+  salaAdamantium: {
+    id: 'salaAdamantium', clazz: 'mudanzas', type: 'spell', rarity: 'rara',
+    name: 'Sala de Adamantium', cost: 3, emoji: '🔒',
+    target: 'friendlyMinion',
+    text: 'Blinda a un esbirro aliado: gana <b>+0/+4</b> y <b>Provocar</b>.',
+    flavor: 'La celda especial del manicomio. La diseñaron pensando en él.',
+    spell(g, p, t) { t.health += 4; t.maxHealth += 4; t.taunt = true; },
+    aiWants(g, p) { return p.board.length > 0; },
+    aiTarget(g, p) { return p.board.slice().sort((a, b) => b.attack - a.attack)[0] || null; }
+  },
+
+  lavadoraQuintoPiso: {
+    id: 'lavadoraQuintoPiso', clazz: 'mudanzas', type: 'spell', rarity: 'épica',
+    name: 'Lavadora al Quinto Piso', cost: 4, emoji: '🌪️',
+    target: 'minion',
+    text: 'Paquito lanza una lavadora a pulso: inflige <b>5</b> de daño a un esbirro.',
+    flavor: 'Sin grúa. Sin cuerdas. Sin miedo. La lavadora entró por la ventana.',
+    spell(g, p, t) { dealDamage(g, t, 5); },
+    aiTarget(g, p) {
+      const opp = g.players[1 - p.idx];
+      return opp.board.slice().sort((a, b) => (b.attack + b.health) - (a.attack + a.health))[0] || null;
+    },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length > 0; }
+  },
+
+  furgonetaSerna: {
+    id: 'furgonetaSerna', clazz: 'mudanzas', type: 'weapon', rarity: 'rara',
+    name: 'La Furgo de Mudanzas Serna', cost: 4, attack: 4, durability: 2, emoji: '🚚',
+    text: 'Artefacto <b>4/2</b>. En el lateral pone: «Nosotros no necesitamos grúa».',
+    flavor: 'Amortiguación reventada de tanto piano.',
+    aiWants(g, p) { return !p.hero.weapon; }
+  },
+
+  pianoHombro: {
+    id: 'pianoHombro', clazz: 'mudanzas', type: 'minion', rarity: 'rara',
+    name: 'Piano al Hombro', cost: 5, attack: 3, health: 6, emoji: '🎹',
+    taunt: true,
+    text: '<b>Provocar</b>. El piano amortigua los golpes.',
+    flavor: 'Un piano de cola por la escalera de caracol. Solo. Silbando.'
+  },
+
+  levantamientoNevera: {
+    id: 'levantamientoNevera', clazz: 'mudanzas', type: 'spell', rarity: 'épica',
+    name: 'Levantamiento de Nevera', cost: 6, emoji: '🧊',
+    text: 'Paquito barre la sala: inflige <b>3</b> de daño a todos los esbirros enemigos.',
+    flavor: 'La nevera industrial. Con la comida dentro. Con una mano.',
+    spell(g, p) {
+      const opp = g.players[1 - p.idx];
+      for (const m of [...opp.board]) dealDamage(g, m, 3);
+    },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length >= 2; }
+  },
+
+  paquitoBestia: {
+    id: 'paquitoBestia', clazz: 'mudanzas', type: 'minion', rarity: 'legendaria',
+    name: 'Paquito, la Bestia Desatada', cost: 7, attack: 6, health: 8, emoji: '🦍',
+    taunt: true,
+    text: '<b>Provocar</b>. <b>Grito de Batalla:</b> lanza una lavadora: 3 de daño al esbirro enemigo con más ataque.',
+    flavor: 'Ha salido de la sala de adamantium. La sala no lo ha resistido a él.',
+    battlecry(g, p, m) {
+      const opp = g.players[1 - p.idx];
+      const t = opp.board.slice().sort((a, b) => b.attack - a.attack)[0];
+      if (t) { dealDamage(g, t, 3); log(g, '🦍 ¡Paquito recibe con una lavadora voladora!'); }
+    }
+  },
+
+  /* ============ MAZO: EL PACIENTE SUPREMO (Mario, boss final) ============
+     Tema: CONTROL MENTAL — mueve los hilos desde la sombra: copia tu
+     mano, engaña a tus esbirros para que se ataquen entre sí y acaba
+     robándotelos. Todos creen que el lore lo inventa Fiti. Es él. */
+
+  moteHumillante: {
+    id: 'moteHumillante', clazz: 'supremo', type: 'spell', rarity: 'común',
+    name: 'Mote Humillante', cost: 1, emoji: '🏷️',
+    target: 'enemyMinion',
+    text: 'Un esbirro enemigo pierde <b>2</b> de ataque. El mote le perseguirá siempre.',
+    flavor: 'No se recurre. No prescribe. No se olvida.',
+    spell(g, p, t) { t.attack = Math.max(0, t.attack - 2); },
+    aiTarget(g, p) { return g.players[1 - p.idx].board.slice().sort((a, b) => b.attack - a.attack)[0] || null; },
+    aiWants(g, p) { return g.players[1 - p.idx].board.some(m => m.attack >= 2); }
+  },
+
+  rumorFalso: {
+    id: 'rumorFalso', clazz: 'supremo', type: 'spell', rarity: 'común',
+    name: 'Rumor Falso', cost: 2, emoji: '🗣️',
+    text: 'Roba <b>2</b> cartas. «Esto lo ha empezado Fiti», susurra Mario.',
+    flavor: 'El rumor dio tres vueltas al grupo y volvió firmado por otro.',
+    spell(g, p) { drawCards(g, p, 2); }
+  },
+
+  clinicaCapilar: {
+    id: 'clinicaCapilar', clazz: 'supremo', type: 'spell', rarity: 'común',
+    name: 'Clínica Capilar', cost: 2, emoji: '💇',
+    text: 'Restaura <b>4</b> de salud a tu héroe y roba una carta.',
+    flavor: 'Pelo nuevo, autoestima nueva, personalidad... la misma.',
+    spell(g, p) { heal(g, p.hero, 4); drawCards(g, p, 1); },
+    aiWants(g, p) { return p.hero.hp <= 26; }
+  },
+
+  actorSecundario: {
+    id: 'actorSecundario', clazz: 'supremo', type: 'minion', rarity: 'común',
+    name: 'Actor Secundario', cost: 2, attack: 2, health: 3, emoji: '🎭',
+    text: '<b>Grito de Batalla:</b> si el rival tiene más esbirros que tú, gana <b>+1/+1</b> (rendir siempre a rebufo).',
+    flavor: 'Nunca protagonista. Siempre en la foto.',
+    battlecry(g, p, m) {
+      if (g.players[1 - p.idx].board.length > p.board.length) {
+        m.attack += 1; m.health += 1; m.maxHealth += 1;
+      }
+    }
+  },
+
+  aRebufo: {
+    id: 'aRebufo', clazz: 'supremo', type: 'spell', rarity: 'rara',
+    name: 'A Rebufo de Nikuman', cost: 2, emoji: '🚴',
+    target: 'enemyMinion',
+    text: 'Invoca una <b>copia 2/2</b> de un esbirro enemigo. La copia nunca supera al original.',
+    flavor: 'Siempre segundo. En el WoW, en el kart y en la vida.',
+    spell(g, p, t) {
+      const m = summon(g, p, t.id);
+      if (m) {
+        m.attack = Math.min(m.attack, 2);
+        m.health = m.maxHealth = Math.min(m.maxHealth, 2);
+        log(g, `🚴 Mario imita a ${t.def.name}... versión descafeinada.`);
+      }
+    },
+    aiTarget(g, p) { return g.players[1 - p.idx].board.slice().sort((a, b) => (b.attack + b.health) - (a.attack + a.health))[0] || null; },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length > 0 && p.board.length < 7; }
+  },
+
+  titiritero: {
+    id: 'titiritero', clazz: 'supremo', type: 'minion', rarity: 'rara',
+    name: 'Titiritero de la Sombra', cost: 3, attack: 2, health: 4, emoji: '🪆',
+    text: 'Al final de tu turno, un esbirro enemigo al azar pierde <b>1</b> de ataque.',
+    flavor: 'Tira del hilo. El muñeco cree que fue idea suya.',
+    endTurn(g, p, m) {
+      const opp = g.players[1 - p.idx];
+      const t = opp.board.filter(x => x.attack > 0);
+      if (t.length) {
+        const v = t[Math.floor(Math.random() * t.length)];
+        v.attack = Math.max(0, v.attack - 1);
+        log(g, `🪆 El titiritero desanima a ${v.def.name}: -1 de ataque.`);
+      }
+    }
+  },
+
+  enganoMaestro: {
+    id: 'enganoMaestro', clazz: 'supremo', type: 'spell', rarity: 'épica',
+    name: 'Engaño Maestro', cost: 3, emoji: '🃏',
+    text: 'Convence a un esbirro enemigo al azar de que otro le ha llamado «Fiti»: se pelean entre ellos.',
+    flavor: '«Ha sido él. Lo he oído. Palabra de Mario.»',
+    spell(g, p) {
+      const opp = g.players[1 - p.idx];
+      if (opp.board.length < 2) return;
+      const i = Math.floor(Math.random() * opp.board.length);
+      let j = Math.floor(Math.random() * (opp.board.length - 1));
+      if (j >= i) j++;
+      const a = opp.board[i], b = opp.board[j];
+      log(g, `🃏 ¡${a.def.name} y ${b.def.name} se pelean por un rumor de Mario!`);
+      const atkA = a.attack, atkB = b.attack;
+      dealDamage(g, b, atkA);
+      dealDamage(g, a, atkB);
+    },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length >= 2; }
+  },
+
+  expedienteVerdadero: {
+    id: 'expedienteVerdadero', clazz: 'supremo', type: 'spell', rarity: 'rara',
+    name: 'El Expediente Verdadero', cost: 4, emoji: '📁',
+    text: 'Roba <b>2</b> cartas y restaura <b>2</b> de salud. Dentro está la verdad: el lore lo escribió Mario.',
+    flavor: 'Guardado bajo llave tras el retrato del Director.',
+    spell(g, p) { drawCards(g, p, 2); heal(g, p.hero, 2); }
+  },
+
+  sillaGaming: {
+    id: 'sillaGaming', clazz: 'supremo', type: 'minion', rarity: 'rara',
+    name: 'Setup Gaming Supremo', cost: 4, attack: 2, health: 5, emoji: '🪑',
+    taunt: true,
+    text: '<b>Provocar</b>. Nadie toca el setup.',
+    flavor: 'RGB en todo. Hasta en el reposapiés. Sobre todo en el reposapiés.',
+  },
+
+  laVerdadDelLore: {
+    id: 'laVerdadDelLore', clazz: 'supremo', type: 'spell', rarity: 'épica',
+    name: 'La Verdad del Lore', cost: 5, emoji: '📜',
+    text: 'La revelación duele: inflige <b>2</b> de daño a todos los esbirros enemigos y roba una carta.',
+    flavor: 'La enfermedad, los motes, el abuso... todo firmado por M.M.',
+    spell(g, p) {
+      const opp = g.players[1 - p.idx];
+      for (const m of [...opp.board]) dealDamage(g, m, 2);
+      drawCards(g, p, 1);
+    },
+    aiWants(g, p) { return g.players[1 - p.idx].board.length >= 2; }
+  },
+
+  camisaFuerzaMental: {
+    id: 'camisaFuerzaMental', clazz: 'supremo', type: 'spell', rarity: 'épica',
+    name: 'Control Mental', cost: 6, emoji: '🌀',
+    target: 'enemyMinion',
+    text: '<b>Toma el control</b> de un esbirro enemigo. Ahora también cree que Fiti tiene la culpa.',
+    flavor: 'No hace falta camisa de fuerza si la mente ya está atada.',
+    spell(g, p, t) { takeControl(g, p, t); },
+    aiTarget(g, p) { return g.players[1 - p.idx].board.slice().sort((a, b) => (b.attack + b.health) - (a.attack + a.health))[0] || null; },
+    aiWants(g, p) { return p.board.length < 7 && g.players[1 - p.idx].board.some(m => m.attack >= 3); }
+  },
+
+  marioSupremoCard: {
+    id: 'marioSupremoCard', clazz: 'supremo', type: 'minion', rarity: 'legendaria',
+    name: 'Mario, el Paciente Supremo', cost: 8, attack: 6, health: 8, emoji: '🧠',
+    text: '<b>Grito de Batalla:</b> toma el control de un esbirro enemigo con 3 o menos de ataque.',
+    flavor: 'El más enfermo de todos. El lore, la enfermedad, los motes: todo suyo. Y todos culpando a Fiti.',
+    battlecry(g, p, m) {
+      const opp = g.players[1 - p.idx];
+      const t = opp.board.filter(x => x.attack <= 3).sort((a, b) => (b.attack + b.health) - (a.attack + a.health))[0];
+      if (t && p.board.length < 7) takeControl(g, p, t);
+    }
+  },
+
   /* ============ FICHAS Y ESPECIALES ============ */
 
   /* --- cartas IMPRESAS en 3D (fichas monocromas del mazo de Jorge) --- */
@@ -1046,6 +1553,22 @@ const CARDS = {
       return k[0] || opp.board[0] || null;
     },
     aiWants(g, p) { return g.players[1 - p.idx].board.length > 0; }
+  },
+
+  moterillo: {
+    id: 'moterillo', clazz: 'token', type: 'minion', rarity: 'común', token: true,
+    name: 'Motero del Grupo', cost: 1, attack: 2, health: 1, emoji: '🛵',
+    charge: true,
+    text: '<b>Embestida</b>.',
+    flavor: 'Llega tarde a la ruta, pero llega quemando rueda.'
+  },
+
+  cajaMudanza: {
+    id: 'cajaMudanza', clazz: 'token', type: 'minion', rarity: 'común', token: true,
+    name: 'Caja de la Mudanza', cost: 1, attack: 0, health: 2, emoji: '📦',
+    taunt: true,
+    text: '<b>Provocar</b>. Pone «FRÁGIL», pero la lanzó Paquito.',
+    flavor: 'Contiene: vajilla, libros y una pesa de 20 kilos «por si acaso».'
   },
 
   gato: {
@@ -1110,6 +1633,29 @@ const SETS = {
     cards: ['yogurPina', 'rabascoEncanado', 'gritoEncane', 'planDeFuga', 'tunelCuchara',
       'gafasAfiladas', 'celadorEnvenenado', 'tatuajesManicomio', 'cauntuHacker',
       'despachoDirector', 'celadoresPersiguen', 'chusFugado', 'eduardoSeguridad']
+  },
+  picado: {
+    name: 'Los Picados', kind: 'expansion', tag: 'EXP · PICADOS',
+    cards: ['moscaCojonera', 'toqueCuerno', 'borregoPicado', 'cabreoInstantaneo',
+      'cuernoAfilado', 'rabascoFurioso']
+  },
+  motero: {
+    name: 'El Taller del Motero', kind: 'mazo', tag: 'MAZO · MOTERO',
+    cards: ['moteroNovato', 'llaveInglesa', 'motoCross', 'electricidadEstatica',
+      'seCansaDeTodo', 'cascoIntegral', 'mecanicoChapuzas', 'derrape', 'motoTrucada',
+      'reclamacionSeguro', 'rutaDominguera', 'victorLamas']
+  },
+  mudanzas: {
+    name: 'Mudanzas Serna', kind: 'mazo', tag: 'MAZO · MUDANZAS',
+    cards: ['romperCamisa', 'mozoAlmacen', 'flexionDorsales', 'sofaCuestas', 'gestoFoto',
+      'salaAdamantium', 'lavadoraQuintoPiso', 'furgonetaSerna', 'pianoHombro',
+      'levantamientoNevera', 'paquitoBestia']
+  },
+  supremo: {
+    name: 'El Paciente Supremo', kind: 'mazo', tag: 'MAZO · SUPREMO',
+    cards: ['moteHumillante', 'rumorFalso', 'clinicaCapilar', 'actorSecundario', 'aRebufo',
+      'titiritero', 'enganoMaestro', 'expedienteVerdadero', 'sillaGaming', 'laVerdadDelLore',
+      'camisaFuerzaMental', 'marioSupremoCard']
   }
 };
 
@@ -1170,5 +1716,34 @@ const DECKS = {
     ...x2('quedarseCalvo'), ...x2('pedoSilencioso'), ...x2('ataquePeter'), ...x2('viajeTurquia'),
     'echarDeathmatch', 'festivalRandom', 'peterGato', 'jugarClassic',
     ...x2('celador'), ...x2('paquito'), ...x2('victor'), ...x2('montreal'), ...x2('terapiaChoque')
+  ],
+  /* mazo de Víctor el Motero: velocidad, motos y averías con seguro */
+  motero: [
+    ...x2('moteroNovato'), ...x2('llaveInglesa'), ...x2('motoCross'), ...x2('electricidadEstatica'),
+    ...x2('seCansaDeTodo'), ...x2('cascoIntegral'), ...x2('mecanicoChapuzas'), ...x2('derrape'),
+    ...x2('motoTrucada'), ...x2('rutaDominguera'), 'reclamacionSeguro', 'victorLamas',
+    ...x2('celador'), ...x2('chus'), ...x2('victor'), ...x2('terapiaChoque')
+  ],
+  /* mazo de Rabasco el Cornudo: agresivo, todo el mundo picado */
+  picado: [
+    ...x2('moscaCojonera'), ...x2('toqueCuerno'), ...x2('borregoPicado'), ...x2('cabreoInstantaneo'),
+    ...x2('cuernoAfilado'), ...x2('rabascoFurioso'),
+    ...x2('rabasco'), ...x2('rabascoEncanado'), ...x2('chus'), ...x2('victor'),
+    ...x2('quejaFormal'), ...x2('sePonePelo'), ...x2('pandilla'),
+    ...x2('terapiaChoque'), ...x2('kebab')
+  ],
+  /* mazo de Paquito la Bestia: fuerza bruta, muros y muebles voladores */
+  mudanzas: [
+    ...x2('romperCamisa'), ...x2('mozoAlmacen'), ...x2('flexionDorsales'), ...x2('sofaCuestas'),
+    ...x2('gestoFoto'), ...x2('salaAdamantium'), ...x2('lavadoraQuintoPiso'), ...x2('furgonetaSerna'),
+    ...x2('pianoHombro'), ...x2('levantamientoNevera'), 'paquitoBestia',
+    ...x2('celador'), ...x2('paquito'), ...x2('chus'), ...x2('rabasco'), 'victor'
+  ],
+  /* mazo de Mario el Paciente Supremo (BOSS): control mental y robo */
+  supremo: [
+    ...x2('moteHumillante'), ...x2('rumorFalso'), ...x2('clinicaCapilar'), ...x2('actorSecundario'),
+    ...x2('aRebufo'), ...x2('titiritero'), ...x2('enganoMaestro'), ...x2('expedienteVerdadero'),
+    ...x2('sillaGaming'), ...x2('laVerdadDelLore'), 'camisaFuerzaMental', 'marioSupremoCard',
+    ...x2('celador'), ...x2('camisaFuerza'), ...x2('montreal'), ...x2('ordenIngreso')
   ]
 };

@@ -98,38 +98,54 @@ HISTORIA.capitulo1 = {
     },
     {
       id: 'victor', nombre: 'Víctor Lamas «El Motero»',
-      hero: 'victorHero', deck: 'manonegra', desbloquea: null,
+      hero: 'victorHero', deck: 'motero', desbloquea: 'motero',
       emoji: '🏍️', foto: 'assets/ilustraciones/victor.png',
-      reto: 'Calvo, escurridizo y con la moto siempre en marcha.',
+      reto: 'Calvo, veloz y con un don: todo lo que «arregla» queda peor.',
       intro: [
         { quien: 'rival', espera: 1, duracion: 4.5, texto: '¿Encerrarme? Me piro en la <b>moto</b> antes de que parpadees, Fiti.' },
-        { quien: 'yo', espera: 0.7, duracion: 4, texto: 'He puesto un badén en la puerta y un casco con correa. Baja de ahí, Víctor.' }
+        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Tu moto la has «arreglado» tú, Víctor. No arranca ni cuesta abajo.' },
+        { quien: 'rival', espera: 0.7, duracion: 4.5, texto: '¡Eso fue la <b>electricidad estática</b> de la camiseta! ¡Como lo de la gráfica! ¡NO FUE CULPA MÍA!' },
+        { quien: 'yo', espera: 0.6, duracion: 4, texto: 'En el manicomio te dejaremos arreglar cosas... lo que diga el seguro. Sube a la furgoneta.' }
       ],
-      victoria: 'Víctor pierde las llaves de la moto en recepción. Ingreso completado.'
+      victoria: 'Víctor ingresa. Mantenimiento ya le ha pedido que NO toque la caldera. El seguro, que sí.'
     },
     {
       id: 'rabasco', nombre: 'Rabasco «El Cornudo»',
-      hero: 'rabascoHero', deck: 'manonegra', desbloquea: null,
+      hero: 'rabascoHero', deck: 'picado', desbloquea: 'picado',
       emoji: '🐏', foto: 'assets/ilustraciones/rabasco.png',
-      reto: 'Picadísimo y con el cuerno de la frente bien afilado.',
+      reto: 'Picadísimo. Cada golpe que aguanta le afila más el cuerno.',
       intro: [
-        { quien: 'rival', espera: 1, duracion: 4.5, texto: 'Estoy muy <b>picado</b>, Fiti. Y con el cuerno bien afilado. No me toques.' },
+        { quien: 'rival', espera: 1, duracion: 4.5, texto: 'Estoy muy <b>picado</b>, Fiti. Y cuanto más me pegues, MÁS me pico. Tú verás.' },
         { quien: 'yo', espera: 0.7, duracion: 4, texto: 'Un cuerno se lima en un momento. Pasa por recepción, Rabasco.' }
       ],
       victoria: 'A Rabasco le liman el cuerno en admisiones. Adentro con él.'
     },
     {
-      id: 'mario', nombre: 'Mario Matas «El Cabecilla»',
-      hero: 'marioHero', deck: 'fuga', desbloquea: 'fuga',
-      emoji: '🎭', foto: 'assets/ilustraciones/mario.png', jefe: true,
-      reto: 'BOSS FINAL. El cerebro de la fuga. El ingreso más difícil.',
+      id: 'paquito', nombre: 'Paquito Serna «La Bestia»',
+      hero: 'paquitoHero', deck: 'mudanzas', desbloquea: 'mudanzas',
+      emoji: '💪', foto: 'assets/ilustraciones/paquito.png',
+      reto: 'Lanza lavadoras a un quinto piso A PULSO. Trae la sala de adamantium.',
       intro: [
-        { quien: 'rival', espera: 1.2, duracion: 5, texto: 'Así que has llegado hasta mí. Yo organicé la <b>fuga</b>, y yo decido quién ingresa aquí.' },
-        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Mario Matas. El cabecilla. Contigo se cierra el capítulo del ingreso.' },
-        { quien: 'rival', espera: 0.7, duracion: 4.5, texto: '¿Capítulo? Esto es una <b>FUGA</b> en marcha: trapicheo, movilidad y puro caos.' },
-        { quien: 'yo', espera: 0.6, duracion: 3.5, texto: 'Traed la camisa de fuerza grande. Esta la firmo yo mismo.' }
+        { quien: 'rival', espera: 1.2, duracion: 5, texto: '¿El manicomio? Fiti, yo subí una <b>lavadora a un quinto</b> lanzándola desde la calle. ¿Qué celda me va a aguantar a mí?' },
+        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'Por eso encargué una sala entera de <b>adamantium</b>, Paquito. Solo para ti.' },
+        { quien: 'rival', espera: 0.7, duracion: 5, texto: '«Mudanzas Serna: nosotros NO necesitamos grúa.» ¿Sabes por qué? *hace el gesto de la foto y la camisa revienta por los dorsales*' },
+        { quien: 'yo', espera: 0.6, duracion: 3.5, texto: 'Celadores... traed la furgoneta grande. Y otra camisa para el señor Serna.' }
       ],
-      victoria: 'Mario Matas, el cabecilla, cae. El capítulo «Ingreso en el Manicomio» queda cerrado.'
+      victoria: 'Paquito entra por voluntad propia: la sala de adamantium le ha parecido «un buen reto». Las paredes ya crujen.'
+    },
+    {
+      id: 'mario', nombre: 'Mario Matas «El Paciente Supremo»',
+      hero: 'marioSupremo', deck: 'supremo', desbloquea: ['fuga', 'supremo'],
+      emoji: '🧠', foto: 'assets/ilustraciones/mario.png', jefe: true, vida: 32,
+      reto: 'BOSS FINAL. La verdadera mano negra detrás de todo. Controla mentes... y te robará hasta las cartas.',
+      intro: [
+        { quien: 'rival', espera: 1.2, duracion: 5, texto: 'Enhorabuena por llegar hasta aquí, Fiti. ¿Aún no lo ves? El lore, la enfermedad, los motes, el abuso... <b>lo inventé todo YO</b>.' },
+        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: '¿Tú? Pero si todo el mundo dice que el enfermo que mueve los hilos soy yo...' },
+        { quien: 'rival', espera: 0.7, duracion: 5, texto: '<b>Exacto.</b> Ese fue mi mejor truco: que todos culparan a Fiti. Yo soy el Paciente Supremo. El más enfermo de todos. Y tus esbirros ya trabajan para mí.' },
+        { quien: 'yo', espera: 0.7, duracion: 4.5, texto: 'El pelo de clínica, la moto, el vicio al PC... y aun así siempre a rebufo de Nikuman. Vas a ingresar, Mario. En la sala del fondo.' },
+        { quien: 'rival', espera: 0.6, duracion: 4, texto: 'Inténtalo, Director. Pero recuerda: aquí las camisas de fuerza... <b>las pongo yo</b>.' }
+      ],
+      victoria: 'Mario Matas, el Paciente Supremo, cae al fin. El verdadero autor del lore queda ingresado... y el mundo sigue culpando a Fiti. CAPÍTULO 1 COMPLETADO.'
     }
   ]
 };

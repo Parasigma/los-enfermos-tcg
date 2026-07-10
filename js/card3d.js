@@ -21,7 +21,7 @@ const Card3D = (() => {
   let textGroup = null, textPlanes = [];
   /* FX de diamante: barrido de brillo + destellos + motas flotando */
   let fxGlare = null, fxGlareCv = null, fxGlareCx = null, fxGlareTex = null;
-  let fxDust = null, fxDustParts = [], fxGlints = [];
+  let fxAura = [], fxDust = null, fxDustParts = [], fxGlints = [];
   let curCardW = 1.76, curCardH = 2.5, curSY = 1.66;
   let lastT = 0, lastRX = 0, lastRY = 0;
   const DUST_N = 22;
@@ -434,8 +434,41 @@ const Card3D = (() => {
     return new THREE.CanvasTexture(cv);
   }
 
+  /* halo del aura: resplandor con forma de carta, más vivo en los bordes
+     (el centro lo tapa el propio modelo: solo asoma el contorno) */
+  function makeAuraTex() {
+    const w = 256, h = 360;
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d');
+    /* la silueta de la carta ocupa ~2/3 del lienzo; el resto es halo */
+    const rx = w * 0.345, ry = h * 0.345, r = 26;
+    cx.shadowColor = 'rgba(120,210,255,1)';
+    cx.fillStyle = 'rgba(160,225,255,.95)';
+    for (const blur of [70, 44, 22]) {          // capas: halo ancho -> borde vivo
+      cx.shadowBlur = blur;
+      cx.beginPath();
+      if (cx.roundRect) cx.roundRect(w / 2 - rx, h / 2 - ry, rx * 2, ry * 2, r);
+      else cx.rect(w / 2 - rx, h / 2 - ry, rx * 2, ry * 2);
+      cx.fill();
+    }
+    return new THREE.CanvasTexture(cv);
+  }
+
   function buildFx() {
     if (fxGlare) return;
+    /* AURA de poder diamantino: dos halos aditivos DETRÁS de la carta que
+       respiran en contrafase (el modelo opaco tapa el centro: queda el
+       contorno brillante, sutil, tipo super saiyan de diamante) */
+    const auraTex = makeAuraTex();
+    fxAura = [];
+    for (let i = 0; i < 2; i++) {
+      const am = new THREE.MeshBasicMaterial({ map: auraTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+      if ('toneMapped' in am) am.toneMapped = false;
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), am);
+      mesh.renderOrder = -1;                     // se pinta primero, tras la carta
+      pivot.add(mesh);
+      fxAura.push(mesh);
+    }
     /* lámina de brillo que barre la carta al inclinarla (aditiva) */
     fxGlareCv = document.createElement('canvas'); fxGlareCv.width = 256; fxGlareCv.height = 364;
     fxGlareCx = fxGlareCv.getContext('2d');
@@ -485,6 +518,16 @@ const Card3D = (() => {
     if (!fxGlare) return;
     const mag = Math.min(1, Math.hypot(cRY / 0.62, cRX / 0.48));
     const spd = Math.min(1, speed / 2.5);
+
+    /* aura: respiración lenta en contrafase, algo más viva al moverla */
+    for (let i = 0; i < fxAura.length; i++) {
+      const a = fxAura[i];
+      const ph = now * 1.4 + i * Math.PI;
+      const puls = 0.5 + 0.5 * Math.sin(ph);
+      a.material.opacity = (0.10 + 0.10 * puls) * (1 + 0.6 * spd);
+      const s = 1 + 0.012 * Math.sin(ph * 0.77);
+      a.scale.set((curCardW / 0.69) * s, (curCardH / 0.69) * s, 1);
+    }
 
     /* barrido de luz siguiendo la inclinación, recortado en suave */
     const w = fxGlareCv.width, h = fxGlareCv.height, c = fxGlareCx;
@@ -558,6 +601,12 @@ const Card3D = (() => {
     if (fxGlare) {
       fxGlare.scale.set(cardW, cardH, 1);
       fxGlare.position.set(0, 0, 0.16 * sY);   // sobre el relieve del marco
+    }
+    /* el aura envuelve la carta: la silueta del halo ocupa ~0.69 del plano,
+       así que se escala para que coincida con la carta y sobresalga el halo */
+    for (const a of fxAura) {
+      a.scale.set(cardW / 0.69, cardH / 0.69, 1);
+      a.position.set(0, cardH * 0.015, -(rawSize.z / 2) * sY - 0.02);
     }
     if (illo) {
       const depth = rawSize.z * sY;

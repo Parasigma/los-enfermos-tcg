@@ -1392,6 +1392,10 @@ function startGame() {
   const oppDeck = enemy ? DECKS[enemy.deck] : DECKS.manonegra;
   const oppHero = enemy ? enemy.hero : 'nikuman';
   G = newGame(play.cards, play.hero, oppDeck, oppHero);
+  /* los jefes de la historia pueden traer vida extra (e.vida) */
+  if (enemy && enemy.vida) {
+    G.players[1].hero.hp = G.players[1].hero.maxHp = enemy.vida;
+  }
   /* modo historia: la intro arranca ANTES del primer render para que
      las cartas iniciales no se vean ni se animen todavía */
   const pasos = enemy ? enemy.intro : null;

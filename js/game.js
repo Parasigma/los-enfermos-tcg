@@ -51,7 +51,11 @@ function shuffle(a) {
 function makePlayer(heroId, deckList, idx) {
   const deck = deckList.map(makeCardInstance);
   shuffle(deck);
-  const deckIds = { director: 'sanatorio', nikuman: 'manonegra', kevin: 'mofeta', marioHero: 'fuga', jorgeHero: 'monzo' };
+  const deckIds = {
+    director: 'sanatorio', nikuman: 'manonegra', kevin: 'mofeta', marioHero: 'fuga',
+    jorgeHero: 'monzo', victorHero: 'motero', rabascoHero: 'picado',
+    paquitoHero: 'mudanzas', marioSupremo: 'supremo'
+  };
   return {
     idx, deckId: deckIds[heroId] || 'sanatorio',
     hero: {
@@ -174,8 +178,16 @@ function dealDamage(g, ent, n) {
   } else {
     ent.health -= n;
     fx('damage', { target: ent, amount: n });
+    notifyDamaged(g, ent);
     checkDeaths(g);
   }
+}
+
+/* «PICADO» (mecánica de Rabasco): si un esbirro sobrevive a un daño,
+   se pica — def.onDamaged se dispara (una embestida de rabia, +ataque...) */
+function notifyDamaged(g, m) {
+  if (!m || m.isHero || m.dead || m.health <= 0) return;
+  if (m.def.onDamaged) m.def.onDamaged(g, g.players[m.owner], m);
 }
 
 function heal(g, ent, n) {
@@ -232,6 +244,22 @@ function summon(g, p, id) {
   p.board.push(m);
   fx('summon', { minion: m, owner: p.idx });
   return m;
+}
+
+/* CONTROL MENTAL (mazo del Paciente Supremo): un esbirro enemigo cambia
+   de bando — cruza el tablero convencido de que la culpa es de Fiti */
+function takeControl(g, p, m) {
+  const opp = g.players[1 - p.idx];
+  const i = opp.board.indexOf(m);
+  if (i < 0 || m.dead || p.board.length >= 7) return false;
+  opp.board.splice(i, 1);
+  m.owner = p.idx;
+  m.sick = true;
+  m.attacksThisTurn = 0;
+  p.board.push(m);
+  log(g, `🎩 ${m.def.name} cambia de bando. «Ha sido cosa de Fiti», murmura.`);
+  fx('summon', { minion: m, owner: p.idx });
+  return true;
 }
 
 /* ---------- IMPRIMIR (mazo de Jorge Monzo) ----------
@@ -347,10 +375,14 @@ function doAttack(g, attacker, target) {
   } else {
     target.health -= atkVal;
     fx('damage', { target, amount: atkVal });
+    notifyDamaged(g, target);
   }
   if (retVal > 0) {
     if (attacker.isHero) attacker.hp -= retVal;
-    else attacker.health -= retVal;
+    else {
+      attacker.health -= retVal;
+      notifyDamaged(g, attacker);
+    }
     fx('damage', { target: attacker, amount: retVal });
   }
 

@@ -33,7 +33,10 @@ const PLAYABLE_HEROES = [
   { id: 'director', set: 'sanatorio' },
   { id: 'kevin', set: 'mofeta' },
   { id: 'marioHero', set: 'fuga' },
-  { id: 'jorgeHero', set: 'monzo' }
+  { id: 'jorgeHero', set: 'monzo' },
+  { id: 'victorHero', set: 'motero' },
+  { id: 'paquitoHero', set: 'mudanzas' },
+  { id: 'marioSupremo', set: 'supremo' }
 ];
 
 /* ---------- mazos: arquetipos + propios ---------- */
@@ -59,6 +62,24 @@ function archetypes() {
     list.push({
       id: 'arch_monzo', archetype: true, hero: 'jorgeHero',
       name: 'La Impresora 3D', cards: DECKS.monzo
+    });
+  }
+  if (Save.ownedSets.includes('motero')) {
+    list.push({
+      id: 'arch_motero', archetype: true, hero: 'victorHero',
+      name: 'El Taller del Motero', cards: DECKS.motero
+    });
+  }
+  if (Save.ownedSets.includes('mudanzas')) {
+    list.push({
+      id: 'arch_mudanzas', archetype: true, hero: 'paquitoHero',
+      name: 'Mudanzas Serna', cards: DECKS.mudanzas
+    });
+  }
+  if (Save.ownedSets.includes('supremo')) {
+    list.push({
+      id: 'arch_supremo', archetype: true, hero: 'marioSupremo',
+      name: 'El Paciente Supremo', cards: DECKS.supremo
     });
   }
   return list;
@@ -114,6 +135,30 @@ const SHOP_ITEMS = [
     img: 'assets/ilustraciones/monzo.png',
     name: 'Mazo: La Impresora 3D',
     desc: 'JORGE MONZO como héroe jugable (poder: Imprimir en 3D) y 12 cartas con la mecánica IMPRIMIR (generan fichas impresas), pedos, calvicie, Counter-Strike, WoW Classic y Peter el gato gordo.'
+  },
+  {
+    set: 'motero', emoji: '🏍️', price: 700,
+    img: 'assets/ilustraciones/victor.png',
+    name: 'Mazo: El Taller del Motero',
+    desc: 'VÍCTOR LAMAS como héroe jugable (poder: Acelerón) y 12 cartas de velocidad pura: motos con Embestida, «arreglos» que rompen lo que tocan y reclamaciones al seguro.'
+  },
+  {
+    set: 'picado', emoji: '💢', price: 350,
+    img: 'assets/ilustraciones/rabasco.png',
+    name: 'Expansión: Los Picados',
+    desc: '6 cartas con la mecánica PICADO de Rabasco: esbirros que se encanan y ganan ataque cada vez que sobreviven a un golpe. Cuanto más les pegas, peor para ti.'
+  },
+  {
+    set: 'mudanzas', emoji: '💪', price: 700,
+    img: 'assets/ilustraciones/paquito.png',
+    name: 'Mazo: Mudanzas Serna',
+    desc: 'PAQUITO LA BESTIA como héroe jugable (poder: A Pulso) y 11 cartas de fuerza bruta: muros con Provocar, lavadoras lanzadas a un quinto piso y la sala de adamantium. Nosotros no necesitamos grúa.'
+  },
+  {
+    set: 'supremo', emoji: '🧠', price: 900,
+    img: 'assets/ilustraciones/mario.png',
+    name: 'Mazo: El Paciente Supremo',
+    desc: 'MARIO SUPREMO como héroe jugable (poder: Mover los Hilos, roba ideas de la mano rival) y 12 cartas de control mental: motes que hunden, engaños entre esbirros y el CONTROL MENTAL definitivo.'
   }
 ];
 
@@ -613,10 +658,14 @@ function storyEnemies() {
     ? HISTORIA.capitulo1.enemigos : [];
 }
 
-/* sets que SOLO se consiguen jugando la historia (no en la tienda) */
+/* sets que SOLO se consiguen jugando la historia (no en la tienda);
+   `desbloquea` puede ser un set o una lista (el boss suelta varios) */
+function enemyUnlocks(e) {
+  return !e.desbloquea ? [] : (Array.isArray(e.desbloquea) ? e.desbloquea : [e.desbloquea]);
+}
 function storyUnlockSets() {
   const set = new Set();
-  for (const e of storyEnemies()) if (e.desbloquea) set.add(e.desbloquea);
+  for (const e of storyEnemies()) for (const s of enemyUnlocks(e)) set.add(s);
   return set;
 }
 
@@ -649,7 +698,7 @@ function storyDefeat(id) {
 
 /* ¿se puede COMPRAR ya el mazo de este set? (su paciente está derrotado) */
 function deckPurchaseUnlocked(set) {
-  return storyEnemies().some(e => e.desbloquea === set && Save.story.defeated.includes(e.id));
+  return storyEnemies().some(e => enemyUnlocks(e).includes(set) && Save.story.defeated.includes(e.id));
 }
 
 /* empezar la batalla contra un enemigo concreto */
