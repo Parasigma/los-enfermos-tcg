@@ -1244,22 +1244,32 @@ function openCardInspector(c, variantOverride) {
   $('#card-inspector').classList.remove('hidden');
   hidePreview();
   Sfx.play('play');
-  /* el fondo/marco 3D va en #ci-holder (hermano de la carta) para no
-     heredar la rotación CSS; se le pasa la ilustración (para el hueco) y
-     la capa de texto, que el modelo mueve en sincronía. La perspectiva
-     del holder se ajusta a la de la cámara 3D para que cuadren. */
+  /* el fondo/marco 3D va en #ci-holder (hermano de la carta). Se le pasa
+     la ilustración (para el hueco) y los DATOS del texto: Card3D lo pinta
+     todo dentro de la escena 3D para que gire como un objeto único. */
   if (is3d) {
     const d = c.def || c;
     const base = (typeof ILUSTRACIONES !== 'undefined' && ILUSTRACIONES[d.id]) || null;
-    $('#ci-holder').style.perspective = '743px';
+    const cost = (c.def && typeof c.costMod === 'number') ? cardCost(c) : d.cost;
+    let stats = null;
+    if (d.type === 'minion') stats = { a: d.attack, b: d.health, kind: 'minion' };
+    else if (d.type === 'weapon') stats = { a: d.attack, b: d.durability, kind: 'weapon' };
+    const si = typeof cardSetInfo === 'function' ? cardSetInfo(d.id) : null;
     Card3D.open($('#ci-holder'), {
       video: 'assets/ilustraciones/' + d.id + '.webm',      // ilustración animada (en bucle)
       url: 'assets/ilustraciones/diamond/' + d.id + '.webp',
       fallback: base,
       emoji: d.emoji
-    }, card);
-  } else {
-    $('#ci-holder').style.perspective = '';
+    }, {
+      type: d.type,
+      cost: cost,
+      discounted: !!(c.def && c.costMod < 0),
+      name: d.name,
+      text: d.text || '',
+      flavor: d.flavor || '',
+      stats: stats,
+      set: si ? { tag: si.tag, kind: si.kind } : null
+    });
   }
 }
 

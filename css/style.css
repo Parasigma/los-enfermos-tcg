@@ -845,26 +845,20 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 /* DIAMOND en 3D: el modelo hace de FONDO/marco (con la ilustración
    dentro, asomando por el hueco). Se apaga todo el marco/fondo plano
    de la carta y solo queda el TEXTO por delante del 3D. */
-/* el texto va sobre el canvas; sin transición porque el bucle 3D fija el
-   giro cada frame (si no, se arrastraría medio segundo por detrás) */
-#ci-card.is-3d { z-index: 3; transition: none; }
-#ci-card.is-3d::after,                        /* marco plano de diamante */
-#ci-card.is-3d .card::after,
-#ci-card.is-3d .card::before,                 /* foil 2D */
-#ci-card.is-3d .card .art,                    /* ilustración (la pone el 3D) */
-#ci-card.is-3d .dia-fx,
+/* DIAMOND en 3D: TODO (marco, ilustración y texto) se pinta dentro de la
+   escena 3D, así que gira como un objeto único y nada «flota». La carta
+   HTML se oculta pero conserva su caja: es el área de arrastre. */
+#ci-card.is-3d { transition: none; }
+#ci-card.is-3d .card,
 #ci-card.is-3d #ci-holo,
 #ci-card.is-3d #ci-sparkle,
-#ci-card.is-3d #ci-glare { display: none !important; }
-/* los números de coste y stats se adelantan un poco: van sobre las gemas
-   con relieve del marco 3D, y así parecen encajados en ellas */
-#ci-card.is-3d .card { transform-style: preserve-3d; }
-#ci-card.is-3d .cost { transform: translateZ(18px); }
-#ci-card.is-3d .stat { transform: translateZ(16px); }
-/* el canvas 3D es el fondo/marco opaco, DEBAJO del texto */
+#ci-card.is-3d #ci-glare { visibility: hidden; }
+/* el canvas desborda la caja de la carta para que las esquinas no se
+   corten al girar (la carta ocupa 1/1.28 del encuadre: OVERSCAN) */
 #card3d-canvas {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
+  position: absolute;
+  left: -14%; top: -14%;
+  width: 128%; height: 128%;
   z-index: 2;
   pointer-events: none;
 }
