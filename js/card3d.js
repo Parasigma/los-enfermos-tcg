@@ -19,6 +19,12 @@ const Card3D = (() => {
   let renderer, scene, camera, pivot, holder, model, illo, illoMat, canvas;
   let rawSize = null, illoSrc = null, illoVideo = null, maxAniso = 1;
   let textGroup = null, textPlanes = [];
+  /* FX de diamante: barrido de brillo + destellos + motas flotando */
+  let fxGlare = null, fxGlareCv = null, fxGlareCx = null, fxGlareTex = null;
+  let fxDust = null, fxDustParts = [], fxGlints = [];
+  let curCardW = 1.76, curCardH = 2.5, curSY = 1.66;
+  let lastT = 0, lastRX = 0, lastRY = 0;
+  const DUST_N = 22;
   let bgImg = null, bgReady = false;
   const CAM_Z = 6, FOV = 30;
   /* hueco real del modelo, medido sobre el render (fracciones de la carta) */
@@ -109,6 +115,7 @@ const Card3D = (() => {
       pivot = new THREE.Group();
       pivot.add(holder); pivot.add(illo); pivot.add(textGroup);
       scene.add(pivot);
+      buildFx();
       ready = true; loading = false;
       fit();
       pending.forEach(f => f()); pending = [];
@@ -391,6 +398,150 @@ const Card3D = (() => {
     fit();
   }
 
+  /* ---------- FX de diamante ---------- */
+
+  /* mota suave (partícula) */
+  function makeDotTex() {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const cx = cv.getContext('2d');
+    const g = cx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.35, 'rgba(190,235,255,.55)');
+    g.addColorStop(1, 'rgba(190,235,255,0)');
+    cx.fillStyle = g; cx.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(cv);
+  }
+
+  /* destello de 4 puntas (chispa de diamante) */
+  function makeStarTex() {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    const cx = cv.getContext('2d');
+    cx.translate(64, 64);
+    const g = cx.createRadialGradient(0, 0, 0, 0, 0, 60);
+    g.addColorStop(0, 'rgba(255,255,255,.95)');
+    g.addColorStop(1, 'rgba(190,235,255,0)');
+    cx.fillStyle = g;
+    const ray = (len, wid) => {
+      cx.beginPath();
+      cx.moveTo(0, -len); cx.quadraticCurveTo(wid, 0, 0, len);
+      cx.quadraticCurveTo(-wid, 0, 0, -len); cx.fill();
+    };
+    ray(58, 7); cx.rotate(Math.PI / 2); ray(58, 7);
+    cx.rotate(Math.PI / 4); ray(30, 4); cx.rotate(Math.PI / 2); ray(30, 4);
+    const c = cx.createRadialGradient(0, 0, 0, 0, 0, 14);
+    c.addColorStop(0, 'rgba(255,255,255,1)'); c.addColorStop(1, 'rgba(255,255,255,0)');
+    cx.fillStyle = c; cx.beginPath(); cx.arc(0, 0, 14, 0, Math.PI * 2); cx.fill();
+    return new THREE.CanvasTexture(cv);
+  }
+
+  function buildFx() {
+    if (fxGlare) return;
+    /* lámina de brillo que barre la carta al inclinarla (aditiva) */
+    fxGlareCv = document.createElement('canvas'); fxGlareCv.width = 256; fxGlareCv.height = 364;
+    fxGlareCx = fxGlareCv.getContext('2d');
+    fxGlareTex = new THREE.CanvasTexture(fxGlareCv);
+    const gm = new THREE.MeshBasicMaterial({ map: fxGlareTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+    if ('toneMapped' in gm) gm.toneMapped = false;
+    fxGlare = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), gm);
+    fxGlare.renderOrder = 10;
+    pivot.add(fxGlare);                    // pegado a la carta
+
+    /* motas de energía flotando DELANTE de la carta (no giran con ella) */
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(DUST_N * 3), col = new Float32Array(DUST_N * 3);
+    fxDustParts = [];
+    for (let i = 0; i < DUST_N; i++) {
+      fxDustParts.push({
+        fx: Math.random() - 0.5, fy: Math.random() * 1.24 - 0.62,
+        z: 0.25 + Math.random() * 0.55,
+        v: 0.05 + Math.random() * 0.06,
+        ph: Math.random() * Math.PI * 2,
+        tw: 1.5 + Math.random() * 2.5
+      });
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const pm = new THREE.PointsMaterial({ size: 0.075, map: makeDotTex(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexColors: true, sizeAttenuation: true });
+    if ('toneMapped' in pm) pm.toneMapped = false;
+    fxDust = new THREE.Points(geo, pm);
+    fxDust.renderOrder = 11;
+    scene.add(fxDust);
+
+    /* destellos sobre la superficie (más al mover la carta) */
+    const starTex = makeStarTex();
+    fxGlints = [];
+    for (let i = 0; i < 6; i++) {
+      const sm = new THREE.SpriteMaterial({ map: starTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+      if ('toneMapped' in sm) sm.toneMapped = false;
+      const sp = new THREE.Sprite(sm);
+      sp.renderOrder = 12;
+      sp.scale.set(0, 0, 1);
+      pivot.add(sp);
+      fxGlints.push({ sp, t: 99, dur: 0.5, delay: Math.random() * 1.6, fx: 0.5, fy: 0.5, s: 0.2 });
+    }
+  }
+
+  function updateFx(dt, now, speed) {
+    if (!fxGlare) return;
+    const mag = Math.min(1, Math.hypot(cRY / 0.62, cRX / 0.48));
+    const spd = Math.min(1, speed / 2.5);
+
+    /* barrido de luz siguiendo la inclinación, recortado en suave */
+    const w = fxGlareCv.width, h = fxGlareCv.height, c = fxGlareCx;
+    const gx = (0.5 + (cRY / 0.62) * 0.42) * w, gy = (0.5 + (cRX / 0.48) * 0.42) * h;
+    c.clearRect(0, 0, w, h);
+    const g = c.createRadialGradient(gx, gy, 0, gx, gy, w * 0.85);
+    g.addColorStop(0, 'rgba(255,255,255,.85)');
+    g.addColorStop(0.35, 'rgba(190,230,255,.30)');
+    g.addColorStop(1, 'rgba(190,230,255,0)');
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = 'destination-in';
+    const msk = c.createRadialGradient(w / 2, h / 2, h * 0.18, w / 2, h / 2, h * 0.62);
+    msk.addColorStop(0, 'rgba(0,0,0,1)'); msk.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = msk; c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = 'source-over';
+    fxGlareTex.needsUpdate = true;
+    fxGlare.material.opacity = 0.08 + 0.28 * mag + 0.22 * spd;
+
+    /* motas: suben despacio, con vaivén y parpadeo suaves */
+    const pos = fxDust.geometry.attributes.position.array;
+    const col = fxDust.geometry.attributes.color.array;
+    for (let i = 0; i < DUST_N; i++) {
+      const p = fxDustParts[i];
+      p.fy += p.v * dt;
+      if (p.fy > 0.62) { p.fy = -0.62; p.fx = Math.random() - 0.5; }
+      pos[i * 3] = (p.fx + Math.sin(now * 0.8 + p.ph) * 0.025) * curCardW;
+      pos[i * 3 + 1] = p.fy * curCardH;
+      pos[i * 3 + 2] = p.z;
+      const edge = Math.max(0, Math.min(1, (0.62 - Math.abs(p.fy)) * 4));
+      const a = 0.5 * edge * (0.55 + 0.45 * Math.sin(now * p.tw + p.ph * 3));
+      col[i * 3] = 0.75 * a; col[i * 3 + 1] = 0.92 * a; col[i * 3 + 2] = a;
+    }
+    fxDust.geometry.attributes.position.needsUpdate = true;
+    fxDust.geometry.attributes.color.needsUpdate = true;
+
+    /* destellos: pocos en reposo, más cuando la mueves */
+    for (const gl of fxGlints) {
+      gl.t += dt;
+      if (gl.t < gl.dur) {
+        const k = Math.sin(Math.PI * (gl.t / gl.dur));
+        gl.sp.scale.set(gl.s * k, gl.s * k, 1);
+        gl.sp.material.opacity = 0.9 * k;
+        gl.sp.position.set((gl.fx - 0.5) * curCardW, (0.5 - gl.fy) * curCardH, 0.17 * curSY);
+      } else {
+        gl.sp.material.opacity = 0;
+        if (gl.t > gl.dur + gl.delay) {
+          gl.t = 0;
+          gl.dur = 0.35 + Math.random() * 0.4;
+          gl.delay = (0.5 + Math.random() * 2.4) / (1 + spd * 6);
+          gl.fx = 0.08 + Math.random() * 0.84;
+          gl.fy = 0.06 + Math.random() * 0.88;
+          gl.s = (0.05 + Math.random() * 0.09) * curCardH;
+        }
+      }
+    }
+  }
+
   /* ---------- encuadre ---------- */
 
   function fit() {
@@ -403,6 +554,11 @@ const Card3D = (() => {
     const cardW = visW * f, cardH = visH * f;
     const sY = cardH / rawSize.y;
     holder.scale.set(cardW / rawSize.x, sY, sY);
+    curCardW = cardW; curCardH = cardH; curSY = sY;
+    if (fxGlare) {
+      fxGlare.scale.set(cardW, cardH, 1);
+      fxGlare.position.set(0, 0, 0.16 * sY);   // sobre el relieve del marco
+    }
     if (illo) {
       const depth = rawSize.z * sY;
       const zIllo = -depth / 2;
@@ -445,9 +601,16 @@ const Card3D = (() => {
     if (illoVideo && illoMat.map && illoMat.map.isVideoTexture && illoVideo.readyState >= 2) {
       illoMat.map.needsUpdate = true;
     }
+    const now = performance.now() / 1000;
+    const dt = lastT ? Math.min(0.05, now - lastT) : 0.016;
+    lastT = now;
     cRX += (tRX - cRX) * 0.16;
     cRY += (tRY - cRY) * 0.16;
     if (pivot) { pivot.rotation.x = cRX; pivot.rotation.y = cRY; }
+    /* velocidad de giro: alimenta el brillo y los destellos */
+    const speed = (Math.abs(cRX - lastRX) + Math.abs(cRY - lastRY)) / Math.max(dt, 0.001);
+    lastRX = cRX; lastRY = cRY;
+    updateFx(dt, now, speed);
     renderer.render(scene, camera);
   }
 
