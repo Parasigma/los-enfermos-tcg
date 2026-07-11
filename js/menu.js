@@ -25,6 +25,9 @@ const Save = {
   cardCollection: {},           // { cardId: copias conseguidas en sobres }
   cardVariants: {},             // { cardId: 'brillante'|'dorada'|'alterada'|'foil' }
   story: { defeated: [], revealed: [] }, // modo historia: enemigos vencidos / revelados
+  /* ficha del paciente: historial de batallas y ELO interno */
+  stats: { games: 0, wins: 0, losses: 0, streak: 0, bestStreak: 0, elo: 1000, log: [] },
+  tradeOut: [],                 // intercambios ofrecidos pendientes de respuesta
   settings: { sound: true, fastAI: false, showLog: true }
 };
 
@@ -191,6 +194,8 @@ function loadSave() {
         Save.story = { defeated: s.story.defeated.slice(), revealed: s.story.revealed.slice() };
       }
       if (s.settings) Object.assign(Save.settings, s.settings);
+      if (s.stats && typeof s.stats === 'object') Object.assign(Save.stats, s.stats);
+      if (Array.isArray(s.tradeOut)) Save.tradeOut = s.tradeOut;
 
       /* migración de guardados antiguos (mazo único o mazo por héroe) */
       if (!Array.isArray(s.customDecks)) {
@@ -302,6 +307,159 @@ function collectionIds() {
     (CARDS[a].cost - CARDS[b].cost) || CARDS[a].name.localeCompare(CARDS[b].name));
 }
 
+/* =========================================================
+   COMPARTIR CARTAS — por código (sin servidor, funciona en
+   web, APK y Electron: el código viaja por WhatsApp).
+   - REGALO: le mandas una carta; él la acepta o la rechaza.
+   - INTERCAMBIO: le ofreces una carta; para aceptarla debe
+     responder con una suya del MISMO VALOR (rareza) y te
+     manda el código de vuelta. Nadie pierde cartas: se
+     comparten COPIAS.
+   - Requisito para RECIBIR: tener desbloqueado el mazo de la
+     carta (vencido su paciente en la historia o comprado).
+   ========================================================= */
+
+const TRADE_TAG = 'ENFCARTA1.';
+
+function tradeEncode(obj) {
+  return TRADE_TAG + btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+}
+function tradeDecode(str) {
+  try {
+    str = String(str || '').trim();
+    if (!str.startsWith(TRADE_TAG)) return null;
+    const o = JSON.parse(decodeURIComponent(escape(atob(str.slice(TRADE_TAG.length)))));
+    return (o && CARDS[o.c] && ['gift', 'offer', 'ans'].includes(o.k)) ? o : null;
+  } catch (e) { return null; }
+}
+
+/* ¿puede este jugador RECIBIR la carta? (mazo desbloqueado) */
+function canReceiveCard(id) {
+  const d = CARDS[id];
+  if (!d || d.token) return { ok: false, why: 'Esa carta es una ficha: no se puede compartir.' };
+  const si = cardSetInfo(id);
+  if (si.kind === 'basica') return { ok: true };
+  if (si.key && (Save.ownedSets.includes(si.key) || deckPurchaseUnlocked(si.key))) return { ok: true };
+  return {
+    ok: false,
+    why: `Para recibir esta carta necesitas desbloquear «${si.name}»: vence a su paciente en el Modo Historia.`
+  };
+}
+
+function addSharedCard(id) {
+  Save.cardCollection[id] = (Save.cardCollection[id] || 0) + 1;
+  persistSave();
+}
+
+/* cartas propias que se pueden compartir (sin fichas) */
+function tradeableIds() {
+  return collectionIds().filter(id => !CARDS[id].token);
+}
+
+function renderTradeScreen() {
+  const sel = document.getElementById('trade-card');
+  if (!sel) return;
+  sel.innerHTML = tradeableIds().map(id =>
+    `<option value="${id}">${CARDS[id].name} · ${CARDS[id].rarity}</option>`).join('');
+  document.getElementById('trade-out').value = '';
+  document.getElementById('trade-result').innerHTML = '';
+  document.getElementById('trade-in').value = '';
+}
+
+function tradeGenerate() {
+  const id = document.getElementById('trade-card').value;
+  const kind = document.querySelector('input[name="trade-kind"]:checked').value;
+  if (!id || !CARDS[id] || !Save.profile) return;
+  const obj = {
+    k: kind === 'offer' ? 'offer' : 'gift',
+    c: id, r: CARDS[id].rarity,
+    f: { i: Save.profile.id, n: Save.profile.name }, t: Date.now()
+  };
+  if (obj.k === 'offer') {
+    Save.tradeOut.unshift({ c: id, t: obj.t });
+    if (Save.tradeOut.length > 10) Save.tradeOut.length = 10;
+    persistSave();
+  }
+  document.getElementById('trade-out').value = tradeEncode(obj);
+}
+
+function tradeCopy() {
+  const ta = document.getElementById('trade-out');
+  if (!ta.value) return;
+  ta.select();
+  try { navigator.clipboard.writeText(ta.value); } catch (e) { document.execCommand('copy'); }
+  flashOk(document.getElementById('btn-trade-copy'));
+}
+
+function tradeRead() {
+  const box = document.getElementById('trade-result');
+  const obj = tradeDecode(document.getElementById('trade-in').value);
+  box.innerHTML = '';
+  const note = (html) => { box.innerHTML = `<p class="lore" style="margin:8px 0">${html}</p>`; };
+  if (!obj) return note('❌ Ese código no es válido.');
+  if (Save.profile && obj.f && obj.f.i === Save.profile.id) return note('😅 Ese código lo generaste tú mismo.');
+  const card = CARDS[obj.c];
+  const de = obj.f ? ` de <b>${obj.f.n}</b> (${obj.f.i})` : '';
+
+  if (obj.k === 'gift') {
+    const chk = canReceiveCard(obj.c);
+    if (!chk.ok) return note('🔒 ' + chk.why);
+    note(`🎁 Regalo${de}: <b>${card.name}</b> (${card.rarity}).`);
+    const b1 = document.createElement('button');
+    b1.className = 'small-btn'; b1.textContent = '✅ Aceptar carta';
+    b1.onclick = () => { addSharedCard(obj.c); note(`🎉 <b>${card.name}</b> añadida a tu colección.`); Sfx.play('win'); };
+    const b2 = document.createElement('button');
+    b2.className = 'small-btn danger'; b2.textContent = '✖ Rechazar';
+    b2.onclick = () => note('Regalo rechazado. Nadie pierde nada.');
+    box.append(b1, b2);
+    return;
+  }
+
+  if (obj.k === 'offer') {
+    const chk = canReceiveCard(obj.c);
+    if (!chk.ok) return note('🔒 ' + chk.why);
+    const mias = tradeableIds().filter(id => CARDS[id].rarity === obj.r && id !== obj.c);
+    if (!mias.length) return note(`⚖️ Te ofrecen <b>${card.name}</b> (${card.rarity}), pero no tienes ninguna carta de ese valor para intercambiar.`);
+    note(`🔁 Intercambio${de}: te ofrece <b>${card.name}</b> (${card.rarity}). Elige una carta tuya del MISMO valor para responder:`);
+    const sel = document.createElement('select');
+    sel.innerHTML = mias.map(id => `<option value="${id}">${CARDS[id].name} · ${CARDS[id].rarity}</option>`).join('');
+    const b1 = document.createElement('button');
+    b1.className = 'small-btn'; b1.textContent = '✅ Aceptar e intercambiar';
+    b1.onclick = () => {
+      addSharedCard(obj.c);
+      const ans = { k: 'ans', c: sel.value, o: obj.c, r: obj.r, f: { i: Save.profile.id, n: Save.profile.name }, t: Date.now() };
+      document.getElementById('trade-out').value = tradeEncode(ans);
+      note(`🎉 <b>${card.name}</b> es tuya. Envíale el código de respuesta (arriba en «Crear envío») para que reciba tu <b>${CARDS[sel.value].name}</b>.`);
+      Sfx.play('win');
+    };
+    const b2 = document.createElement('button');
+    b2.className = 'small-btn danger'; b2.textContent = '✖ Rechazar';
+    b2.onclick = () => note('Intercambio rechazado. Nadie pierde nada.');
+    box.append(sel, b1, b2);
+    return;
+  }
+
+  /* respuesta a un intercambio que TÚ ofreciste */
+  if (obj.k === 'ans') {
+    const mine = Save.tradeOut.find(x => x.c === obj.o);
+    if (!mine) return note('🤔 Esa respuesta no corresponde a ningún intercambio tuyo pendiente.');
+    if (CARDS[obj.c].rarity !== CARDS[obj.o].rarity) return note('⚖️ Ese intercambio no es del mismo valor. Código rechazado.');
+    const chk = canReceiveCard(obj.c);
+    if (!chk.ok) return note('🔒 ' + chk.why);
+    note(`🔁 ${obj.f ? `<b>${obj.f.n}</b>` : 'Tu amigo'} ha aceptado tu intercambio y te envía <b>${card.name}</b> (${card.rarity}).`);
+    const b1 = document.createElement('button');
+    b1.className = 'small-btn'; b1.textContent = '✅ Completar intercambio';
+    b1.onclick = () => {
+      addSharedCard(obj.c);
+      Save.tradeOut = Save.tradeOut.filter(x => x !== mine);
+      persistSave();
+      note(`🎉 <b>${card.name}</b> añadida a tu colección. Intercambio completado.`);
+      Sfx.play('win');
+    };
+    box.append(b1);
+  }
+}
+
 /* ---------- ajustes aplicados al juego ---------- */
 
 function applySettings() {
@@ -314,9 +472,65 @@ function applySettings() {
   if (logToggle) logToggle.style.display = Save.settings.showLog ? '' : 'none';
 }
 
+/* ---------- FICHA DEL PACIENTE: historial de batallas y ELO ----------
+   El ELO es interno (K=32, arranque 1000). Los rivales de la historia
+   tienen rating fijo según su dificultad; IA libre y online = 1000. */
+const STORY_ELO = { nikuman: 950, kevin: 980, jorge: 1120, victor: 1060, rabasco: 1060, paquito: 1120, mario: 1250 };
+
+function recordBattle(winner) {
+  if (winner !== 0 && winner !== 1) return;   // el doble K.O. no puntúa
+  const st = Save.stats;
+  const mp = typeof MP !== 'undefined' && (MP.active || MP.role);
+  const enemy = (!mp && typeof activeStoryEnemy !== 'undefined' && activeStoryEnemy) ? activeStoryEnemy : null;
+  const mode = mp ? 'online' : (enemy ? 'historia' : 'libre');
+  const vs = (typeof G !== 'undefined' && G) ? G.players[1].hero.def.name.split(' «')[0] : 'Rival';
+  const oppElo = enemy ? (STORY_ELO[enemy.id] || 1000) : 1000;
+  const win = winner === 0;
+  st.games++;
+  if (win) st.wins++; else st.losses++;
+  st.streak = win ? (st.streak > 0 ? st.streak + 1 : 1) : 0;
+  if (st.streak > st.bestStreak) st.bestStreak = st.streak;
+  const esperado = 1 / (1 + Math.pow(10, (oppElo - st.elo) / 400));
+  st.elo = Math.max(0, Math.round(st.elo + 32 * ((win ? 1 : 0) - esperado)));
+  st.log.unshift({ vs, mode, win, elo: st.elo, t: Date.now() });
+  if (st.log.length > 30) st.log.length = 30;
+  persistSave();
+}
+
+function renderProfile() {
+  const st = Save.stats;
+  const el = document.getElementById('profile-body');
+  if (!el) return;
+  const wr = st.games ? Math.round(100 * st.wins / st.games) : 0;
+  const fmt = t => new Date(t).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+  el.innerHTML = `
+    <p class="lore" style="margin:6px 0 12px">${Save.profile
+      ? `Paciente <b>${Save.profile.name}</b> · Expediente <b>${Save.profile.id}</b>` : 'Sin ficha de ingreso'}</p>
+    <div class="profile-stats">
+      <div class="ps-box"><b>${st.elo}</b><span>ELO</span></div>
+      <div class="ps-box"><b>${st.games}</b><span>Partidas</span></div>
+      <div class="ps-box"><b>${st.wins}</b><span>Victorias</span></div>
+      <div class="ps-box"><b>${st.losses}</b><span>Derrotas</span></div>
+      <div class="ps-box"><b>${wr}%</b><span>Winrate</span></div>
+      <div class="ps-box"><b>${st.bestStreak}</b><span>Mejor racha</span></div>
+    </div>
+    <div class="battle-log">
+      ${st.log.length
+        ? st.log.map(l => `
+          <div class="bl-row ${l.win ? 'w' : 'l'}">
+            <span class="bl-res">${l.win ? '🏆' : '💀'}</span>
+            <span class="bl-vs">${l.vs}</span>
+            <span class="bl-mode">${l.mode}</span>
+            <span class="bl-elo">${l.elo}</span>
+            <span class="bl-date">${fmt(l.t)}</span>
+          </div>`).join('')
+        : '<p class="hint">Aún no hay batallas en el expediente. ¡Al tablero!</p>'}
+    </div>`;
+}
+
 /* ---------- navegación entre pantallas ---------- */
 
-const SCREENS = ['register-screen', 'main-menu', 'story-screen', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'end-overlay'];
+const SCREENS = ['register-screen', 'main-menu', 'story-screen', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'profile-screen', 'trade-screen', 'end-overlay'];
 
 function showScreen(id) {
   for (const s of SCREENS) {
@@ -337,6 +551,8 @@ function showScreen(id) {
   if (id === 'deck-screen') openDeckEditor();
   if (id === 'story-screen') renderStoryScreen();
   if (id === 'settings-screen') renderSettings();
+  if (id === 'profile-screen') renderProfile();
+  if (id === 'trade-screen') renderTradeScreen();
   if (typeof fitOverlays === 'function') fitOverlays();
 }
 

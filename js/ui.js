@@ -158,14 +158,26 @@ function cardInnerHTML(c) {
   }
   /* clasificación: a qué mazo/expansión pertenece la carta */
   const si = typeof cardSetInfo === 'function' ? cardSetInfo(d.id) : null;
+  /* icono del TIPO de carta (esquina superior derecha) */
+  const ct = typeof cardCType === 'function' ? cardCType(d) : 'otros';
   return `
     <div class="cost ${discounted ? 'discount' : ''}">${cost}</div>
+    <img class="corner-type" src="assets/corner_${ct}.png" alt=""
+         onerror="this.src='assets/corner_otros.png';this.onerror=function(){this.remove()}">
     <div class="art">${artHTML(d, variant)}</div>
     <div class="name">${d.name}</div>
     <div class="text">${d.text || ''}</div>
     ${stats}
     ${si ? `<div class="set-tag st-${si.kind}" title="${si.desc}">${si.tag}</div>` : ''}
     ${variant === 'diamond' ? diamondSparklesHTML() : ''}`;
+}
+
+/* hue del grado ALTERADA: aleatorio pero ESTABLE por carta (hash del id),
+   así cada alterada tiene su propio color y no parpadea entre renders */
+function altHue(id) {
+  let h = 0;
+  for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return 40 + (h % 320);   // esquiva los tonos casi-originales (0-40)
 }
 
 function cardEl(c) {
@@ -175,6 +187,7 @@ function cardEl(c) {
   /* versión especial conseguida en sobres (foil, dorada...) */
   const v = typeof cardVariant === 'function' ? cardVariant(c.id) : null;
   if (v) el.classList.add('v-' + v);
+  if (v === 'alterada') el.style.setProperty('--alt-hue', altHue(c.id) + 'deg');
   el.dataset.uid = c.uid;
   el.innerHTML = cardInnerHTML(c);
   return el;
@@ -183,7 +196,8 @@ function cardEl(c) {
 function bigCardHTML(c) {
   const d = c.def || c;
   const v = (typeof cardVariant === 'function' && c.id) ? cardVariant(c.id) : null;
-  return `<div class="card big t-${d.type} ${d.clazz} r-${d.rarity} ${v ? 'v-' + v : ''}">${cardInnerHTML(c)}
+  const hue = v === 'alterada' ? ` style="--alt-hue:${altHue(d.id)}deg"` : '';
+  return `<div class="card big t-${d.type} ${d.clazz} r-${d.rarity} ${v ? 'v-' + v : ''}"${hue}>${cardInnerHTML(c)}
     <div class="flavor">${d.flavor || ''}</div></div>`;
 }
 
@@ -199,6 +213,7 @@ function minionEl(m, mine) {
   if (m.stench) el.classList.add('stench');
   const mv = typeof cardVariant === 'function' ? cardVariant(m.id) : null;
   if (mv) el.classList.add('v-' + mv);
+  if (mv === 'alterada') el.style.setProperty('--alt-hue', altHue(m.id) + 'deg');
   /* no puede actuar: recién invocado, sin ataque o ya gastado este turno */
   const inactive = (m.sick && !m.charge) || m.attack === 0 ||
     (G && G.current === m.owner && m.attacksThisTurn > 0);
@@ -267,7 +282,29 @@ function render() {
   renderBoard(0);
   renderPlayerHand();
   renderEndTurn();
+  renderEnvBadge();
   flushFx();
+}
+
+/* placa del ENTORNO activo (cap. 2): nombre y turnos restantes */
+function renderEnvBadge() {
+  let b = document.getElementById('env-badge');
+  const stage = $('#stage');
+  if (!G || !G.env) {
+    if (b) b.remove();
+    stage.classList.remove('env-on');
+    delete stage.dataset.env;
+    return;
+  }
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'env-badge';
+    stage.appendChild(b);
+  }
+  b.innerHTML = `${G.env.def.emoji || '🌐'} <b>${G.env.def.name}</b> · ${G.env.turnsLeft} ⏳`;
+  b.title = G.env.def.text ? G.env.def.text.replace(/<[^>]*>/g, '') : '';
+  stage.classList.add('env-on');
+  stage.dataset.env = G.env.def.id;   // para skins CSS por entorno (cap. 2)
 }
 
 function renderEnemyHand() {
@@ -880,6 +917,16 @@ function flushFx() {
         Sfx.play('equip');
         break;
       }
+      case 'env': {
+        banner('🌐 ¡DOMINIO DESPLEGADO!');
+        if (typeof VFX !== 'undefined') {
+          const r = $('#stage').getBoundingClientRect();
+          VFX.magic(r.left + r.width / 2, r.top + r.height / 2, ['#7fd8ff', '#ffffff', '#b980ff'], { big: true });
+        }
+        Sfx.play('magic');
+        break;
+      }
+      case 'envEnd': Sfx.play('draw'); break;
       case 'burn': case 'discard': break;
     }
   }
@@ -1259,6 +1306,8 @@ function showEnd(winner) {
   const text = $('#end-text');
   const reward = awardCoins(winner);
   $('#end-reward').innerHTML = `+${reward} 💊 &nbsp;·&nbsp; total: ${Save.coins} 💊`;
+  /* anota la batalla en la ficha del paciente (historial + ELO) */
+  if (typeof recordBattle === 'function') recordBattle(winner);
 
   const mp = typeof MP !== 'undefined' && (MP.active || MP.role);
   const enemy = (!mp && typeof activeStoryEnemy !== 'undefined' && activeStoryEnemy) ? activeStoryEnemy : null;
@@ -1275,8 +1324,11 @@ function showEnd(winner) {
     if (enemy && typeof storyDefeat === 'function') {
       const wasNew = !Save.story.defeated.includes(enemy.id);
       storyDefeat(enemy.id);
-      if (wasNew && enemy.desbloquea && SETS[enemy.desbloquea]) {
-        msg += `<br><span class="unlock-note">🔓 Desbloqueada la COMPRA de <b>${SETS[enemy.desbloquea].name}</b> — cómpralo en la Tienda de Mazos.</span>`;
+      /* `desbloquea` puede ser un set o una lista (el boss suelta varios) */
+      const unlocked = (typeof enemyUnlocks === 'function' ? enemyUnlocks(enemy) : [])
+        .filter(s => SETS[s]).map(s => SETS[s].name);
+      if (wasNew && unlocked.length) {
+        msg += `<br><span class="unlock-note">🔓 Desbloqueada la COMPRA de <b>${unlocked.join('</b> y <b>')}</b> — en la Tienda de Mazos.</span>`;
       }
       const done = storyChapterComplete();
       if (done) {
@@ -1388,6 +1440,7 @@ function openCardInspector(c, variantOverride) {
       emoji: d.emoji
     }, {
       type: d.type,
+      ctype: typeof cardCType === 'function' ? cardCType(d) : null,
       cost: cost,
       discounted: !!(c.def && c.costMod < 0),
       name: d.name,

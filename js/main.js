@@ -46,6 +46,20 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-back]').forEach(b =>
     b.addEventListener('click', () => { hidePreview(); showScreen('main-menu'); }));
 
+  /* compartir cartas (regalos e intercambios por código) */
+  document.getElementById('btn-trade').addEventListener('click', () => showScreen('trade-screen'));
+  document.getElementById('btn-trade-gen').addEventListener('click', tradeGenerate);
+  document.getElementById('btn-trade-copy').addEventListener('click', tradeCopy);
+  document.getElementById('btn-trade-read').addEventListener('click', tradeRead);
+
+  /* la placa del perfil abre la FICHA DEL PACIENTE (historial + ELO) */
+  const profBadge = document.getElementById('menu-profile');
+  if (profBadge) {
+    profBadge.style.cursor = 'pointer';
+    profBadge.title = 'Ver tu ficha: historial de batallas y ELO';
+    profBadge.addEventListener('click', () => showScreen('profile-screen'));
+  }
+
   /* gestor de mazos */
   document.getElementById('btn-deck-auto').addEventListener('click', autoCompleteDeck);
   document.getElementById('btn-deck-save').addEventListener('click', saveDeck);

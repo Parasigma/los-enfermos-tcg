@@ -377,7 +377,19 @@ const Card3D = (() => {
       cx.fillText(data.set.tag, W / 2, by + ph / 2 + S);
     }
     /* la placa central se apoya en la superficie plana del marco */
-    planeFromCanvas(cv, 0.5, 0.5, 1, 1, surfaceZ(0.5, 0.72, 0.03) + eps);
+    const bodyMesh = planeFromCanvas(cv, 0.5, 0.5, 1, 1, surfaceZ(0.5, 0.72, 0.03) + eps);
+
+    /* icono del TIPO de carta (esquina superior derecha) */
+    if (data.ctype) {
+      const im = new Image();
+      im.onload = () => {
+        const w2 = 0.19 * W, h2 = w2 * (im.height / im.width);
+        cx.drawImage(im, W - 0.022 * W - w2, 0.02 * H, w2, h2);
+        if (bodyMesh.material.map) bodyMesh.material.map.needsUpdate = true;
+      };
+      im.onerror = () => { im.onerror = null; im.src = 'assets/corner_otros.png'; };
+      im.src = 'assets/corner_' + data.ctype + '.png';
+    }
 
     /* --- gemas: coste arriba-izda; stats abajo (apoyados en SU relieve) --- */
     const gemW = 0.24, gemH = 0.17;

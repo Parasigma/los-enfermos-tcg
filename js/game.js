@@ -78,7 +78,8 @@ function newGame(playerDeckIds, playerHeroId, oppDeckIds, oppHeroId) {
       makePlayer(playerHeroId || 'director', playerDeckIds || DECKS.sanatorio, 0),
       makePlayer(oppHeroId || 'nikuman', oppDeckIds || DECKS.manonegra, 1)
     ],
-    current: 0, turn: 0, over: false, winner: null, log: []
+    current: 0, turn: 0, over: false, winner: null, log: [],
+    env: null   // ENTORNO activo: { def, owner, turnsLeft } (capítulo 2)
   };
   drawCards(g, g.players[0], 3);
   drawCards(g, g.players[1], 4);
@@ -342,10 +343,40 @@ function playCard(g, p, uid, target) {
   } else if (c.def.type === 'weapon') {
     p.hero.weapon = { def: c.def, attack: c.def.attack, durability: c.def.durability };
     fx('equip', { owner: p.idx });
+  } else if (c.def.type === 'entorno') {
+    setEnvironment(g, p, c.def);
   }
 
   checkGameOver(g);
   return true;
+}
+
+/* ---------- ENTORNO (capítulo 2) ----------
+   Cartas que transforman el tablero y las reglas mientras están activas
+   (la «expansión de dominio» del manicomio). Cada mazo tendrá la suya.
+   La carta define:
+   - duracion:  turnos del dueño que permanece (por defecto 3)
+   - envStart(g, p):        al desplegarse
+   - envTurn(g, pDueño, pTurno): al empezar CADA turno mientras dura
+   - envEnd(g):             al agotarse o ser sustituido por otro entorno
+   Solo puede haber UN entorno activo: el nuevo expulsa al anterior. */
+
+function setEnvironment(g, p, def) {
+  if (g.env && g.env.def.envEnd) g.env.def.envEnd(g);
+  g.env = { def, owner: p.idx, turnsLeft: def.duracion || 3 };
+  log(g, `🌐 ${heroName(p)} despliega su dominio: «${def.name}».`);
+  fx('env', { id: def.id, owner: p.idx });
+  if (def.envStart) def.envStart(g, p);
+  checkDeaths(g);
+  checkGameOver(g);
+}
+
+function clearEnvironment(g) {
+  if (!g.env) return;
+  log(g, `🌫️ El entorno «${g.env.def.name}» se desvanece.`);
+  if (g.env.def.envEnd) g.env.def.envEnd(g);
+  g.env = null;
+  fx('envEnd', {});
 }
 
 /* ---------- combate ---------- */
@@ -446,6 +477,12 @@ function startTurn(g, pIdx) {
   for (const m of p.board) { m.sick = false; m.attacksThisTurn = 0; }
   log(g, `— 🕰️ Turno de ${heroName(p)} (${p.maxMana} de maná) —`);
   drawCards(g, p, 1);
+  /* el ENTORNO activo actúa al empezar cada turno */
+  if (g.env && g.env.def.envTurn) {
+    g.env.def.envTurn(g, g.players[g.env.owner], p);
+    checkDeaths(g);
+    checkGameOver(g);
+  }
 }
 
 function endTurn(g) {
@@ -462,6 +499,11 @@ function endTurn(g) {
   }
   checkDeaths(g);
   checkGameOver(g);
+  /* el ENTORNO se consume al final de cada turno de su dueño */
+  if (g.env && g.env.owner === g.current) {
+    g.env.turnsLeft--;
+    if (g.env.turnsLeft <= 0) clearEnvironment(g);
+  }
   if (!g.over) startTurn(g, 1 - g.current);
 }
 

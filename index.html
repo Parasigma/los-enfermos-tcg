@@ -110,7 +110,7 @@
         <div class="coins-badge">💊 <span id="menu-coins">0</span> pastillas</div>
         <div id="menu-profile" class="profile-badge"></div>
       </div>
-      <div class="version-tag">v3.4</div>
+      <div class="version-tag">v3.5</div>
     </div>
   </div>
 
@@ -194,6 +194,10 @@
         </div>
         <div id="join-status" class="hint"></div>
       </div>
+      <div class="online-box">
+        <button id="btn-trade" class="img-btn">🎁 Compartir cartas con un amigo</button>
+        <div class="hint">Regala o intercambia cartas por código (WhatsApp y listo). Nadie pierde cartas.</div>
+      </div>
       <button id="btn-online-back" class="img-btn">← Volver</button>
     </div>
   </div>
@@ -212,6 +216,47 @@
         <button id="btn-export-save" class="small-btn">📋 Copiar código de progreso</button>
         <button id="btn-import-save" class="small-btn">📥 Cargar código de progreso</button>
         <button id="btn-reset-save" class="small-btn danger">🗑️ Borrar progreso</button>
+        <button class="img-btn" data-back>← Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARTIR CARTAS: regalos e intercambios por código -->
+  <div id="trade-screen" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:38px">🎁 COMPARTIR CARTAS</h2>
+      <p class="lore">Envía cartas a un amigo con un <b>código</b> (pásaselo por WhatsApp). Nadie pierde cartas: se comparten <b>copias</b>. Para <b>recibir</b> una carta hay que tener su mazo desbloqueado, y los <b>intercambios</b> deben ser de cartas del mismo valor.</p>
+      <div class="trade-cols">
+        <div class="trade-box">
+          <h3>📤 Crear envío</h3>
+          <select id="trade-card"></select>
+          <div class="trade-mode">
+            <label><input type="radio" name="trade-kind" value="gift" checked> 🎁 Regalo</label>
+            <label><input type="radio" name="trade-kind" value="offer"> 🔁 Intercambio</label>
+          </div>
+          <button id="btn-trade-gen" class="small-btn">Generar código</button>
+          <textarea id="trade-out" readonly placeholder="Aquí saldrá el código para tu amigo" spellcheck="false"></textarea>
+          <button id="btn-trade-copy" class="small-btn">📋 Copiar código</button>
+        </div>
+        <div class="trade-box">
+          <h3>📥 Recibir</h3>
+          <textarea id="trade-in" placeholder="Pega aquí el código que te han enviado" spellcheck="false"></textarea>
+          <button id="btn-trade-read" class="small-btn">Leer código</button>
+          <div id="trade-result"></div>
+        </div>
+      </div>
+      <div class="menu-buttons">
+        <button class="img-btn" data-back>← Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FICHA DEL PACIENTE: perfil, historial de batallas y ELO -->
+  <div id="profile-screen" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:40px">📋 FICHA DEL PACIENTE</h2>
+      <div id="profile-body"></div>
+      <div class="menu-buttons">
         <button class="img-btn" data-back>← Volver</button>
       </div>
     </div>

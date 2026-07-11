@@ -175,6 +175,17 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 }
 .card .cost.discount { color: #8dff9d; }
 
+/* icono del TIPO de carta (esbirro/objeto/artefacto/enfermedad/otros/
+   entorno) en la esquina superior derecha, donde estaba el círculo */
+.card .corner-type {
+  position: absolute;
+  right: 2.2%; top: 2%;
+  width: 19%;
+  z-index: 2;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5));
+}
+
 /* arte en la ventana recortada: la ilustración queda detrás del marco
    y NUNCA se sale del recuadro (overflow hidden).
    Medidas del hueco transparente reales (canal alfa del PNG):
@@ -1429,10 +1440,11 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   filter: drop-shadow(0 0 10px rgba(255, 200, 60, .8));
 }
 
-/* 🌀 alterada: la ilustración cambia de mundo */
+/* 🌀 alterada: la ilustración cambia de mundo — CADA carta con SU color
+   (--alt-hue lo fija el JS a partir del id: aleatorio pero estable) */
 .card.v-alterada .art-img, .card.v-alterada .art-emoji,
 .minion.v-alterada .m-art img, .minion.v-alterada .m-art .art-emoji {
-  filter: hue-rotate(160deg) saturate(1.6) contrast(1.15);
+  filter: hue-rotate(var(--alt-hue, 160deg)) saturate(1.6) contrast(1.15);
 }
 .card.v-alterada { filter: drop-shadow(0 0 7px rgba(160, 80, 255, .8)); }
 .minion.v-alterada { filter: drop-shadow(0 0 7px rgba(160, 80, 255, .8)); }
@@ -1543,6 +1555,123 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 /* foil holográfico del inspector para DIAMANTE: arcoíris frío/brillante */
 #ci-card[data-variant="diamond"] #ci-holo { filter: brightness(.9) contrast(1.55) saturate(1.5) hue-rotate(-10deg); }
 #ci-card.holo-on[data-variant="diamond"] #ci-sparkle { opacity: .34; }
+
+/* ---------------- ENTORNO (capítulo 2) ---------------- */
+
+/* placa del entorno activo, arriba-centro del tablero */
+#env-badge {
+  position: absolute;
+  left: 50%; top: 6px;
+  transform: translateX(-50%);
+  z-index: 6;
+  background: rgba(10, 26, 23, .88);
+  border: 2px solid var(--gold-dark);
+  border-radius: 16px;
+  padding: 7px 18px;
+  font-size: 16px;
+  color: var(--parchment);
+  pointer-events: none;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .5));
+}
+#env-badge b { color: var(--gold); }
+/* tinte suave del tablero mientras hay un dominio activo (cada entorno
+   podrá traer el suyo vía [data-env="id"]) */
+#stage.env-on::after {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  background: var(--env-tint, radial-gradient(ellipse at 50% 50%, transparent 58%, rgba(90, 170, 255, .14)));
+}
+
+/* ---------------- COMPARTIR CARTAS ---------------- */
+
+.trade-cols {
+  display: flex;
+  gap: 16px;
+  margin: 10px 0;
+  text-align: left;
+}
+.trade-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(6, 16, 14, .55);
+  border: 2px solid rgba(120, 150, 140, .35);
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 0;
+}
+.trade-box h3 { color: var(--gold); font-size: 17px; margin: 0 0 2px; }
+.trade-box select, #trade-result select {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 2px solid var(--gold-dark);
+  background: rgba(10, 26, 23, .9);
+  color: var(--parchment);
+  max-width: 100%;
+}
+.trade-box textarea {
+  font-family: monospace;
+  font-size: 11px;
+  min-height: 74px;
+  resize: vertical;
+  border-radius: 8px;
+  border: 2px solid rgba(120, 150, 140, .4);
+  background: rgba(10, 26, 23, .9);
+  color: #cfe3dc;
+  padding: 8px;
+}
+.trade-mode { display: flex; gap: 18px; font-size: 14.5px; }
+.trade-mode label { cursor: pointer; }
+#trade-result { display: flex; flex-direction: column; gap: 8px; }
+#trade-result .lore { font-size: 14.5px; }
+
+/* ---------------- FICHA DEL PACIENTE (perfil) ---------------- */
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin: 8px 0 14px;
+}
+.ps-box {
+  background: rgba(10, 26, 23, .75);
+  border: 2px solid rgba(120, 150, 140, .4);
+  border-radius: 12px;
+  padding: 10px 4px;
+  text-align: center;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ps-box b { font-size: 22px; color: var(--gold); }
+.ps-box span { font-size: 11px; color: #a8c2bb; letter-spacing: .5px; }
+
+.battle-log {
+  max-height: 280px;
+  overflow-y: auto;
+  border-radius: 10px;
+  background: rgba(6, 16, 14, .6);
+  padding: 8px 10px;
+  text-align: left;
+}
+.bl-row {
+  display: grid;
+  grid-template-columns: 26px 1fr 70px 52px 46px;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 6px;
+  border-bottom: 1px solid rgba(120, 150, 140, .18);
+  font-size: 13.5px;
+}
+.bl-row:last-child { border-bottom: none; }
+.bl-row.w .bl-vs { color: #b9f6ca; }
+.bl-row.l .bl-vs { color: #ffb3ab; }
+.bl-mode { color: #8fa5a0; font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px; }
+.bl-elo { color: var(--gold); font-weight: bold; text-align: right; }
+.bl-date { color: #8fa5a0; font-size: 11.5px; text-align: right; }
 
 /* ---------------- PANTALLA ONLINE ---------------- */
 

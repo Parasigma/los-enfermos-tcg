@@ -1665,6 +1665,32 @@ const SETS = {
   }
 };
 
+/* ---------- TIPO de carta (icono de la esquina superior derecha) ----------
+   esbirro | objeto | artefacto | enfermedad | otros | entorno
+   Los esbirros y artefactos salen solos del type; los hechizos se
+   clasifican aquí (lo que no esté listado = otros). */
+const CTYPE_OBJETO = [
+  'camisaFuerza', 'ordenIngreso', 'medicacion', 'kebab', 'hamburguesaDoble',
+  'kebabMadrugada', 'yogurPina', 'planDeFuga', 'manualImpresora', 'llaveInglesa',
+  'cascoIntegral', 'reclamacionSeguro', 'lavadoraQuintoPiso', 'levantamientoNevera',
+  'expedienteVerdadero', 'litrona', 'cerveza', 'impGafas', 'impHerramienta'
+];
+const CTYPE_ENFERMEDAD = [
+  'brote', 'peucada', 'pedoAtomico', 'cuescoVolador', 'mochilaPedo', 'pedoProteico',
+  'cuescoExpulsor', 'pedoCaotico', 'pedoDefinitivo', 'quedarseCalvo', 'pedoSilencioso',
+  'cabreoInstantaneo'
+];
+function cardCType(d) {
+  if (!d) return 'otros';
+  if (d.type === 'minion') return 'esbirro';
+  if (d.type === 'weapon') return 'artefacto';
+  if (d.type === 'entorno') return 'entorno';
+  if (d.ctype) return d.ctype;                 // clasificación manual por carta
+  if (CTYPE_OBJETO.includes(d.id)) return 'objeto';
+  if (CTYPE_ENFERMEDAD.includes(d.id)) return 'enfermedad';
+  return 'otros';
+}
+
 /* clasificación de una carta: a qué mazo / expansión pertenece */
 function cardSetInfo(id) {
   for (const key of Object.keys(SETS)) {
