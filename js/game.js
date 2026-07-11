@@ -82,7 +82,12 @@ function newGame(playerDeckIds, playerHeroId, oppDeckIds, oppHeroId) {
   };
   drawCards(g, g.players[0], 3);
   drawCards(g, g.players[1], 4);
-  g.players[1].hand.push(makeCardInstance('cerveza')); // moneda para el 2º jugador
+  /* la Cerveza Gratis (moneda del 2º jugador) solo la llevan los mazos
+     fiesteros a los que les pega por lore: Kevin, Jorge y Paquito */
+  const CERVEZA_DECKS = ['mofeta', 'monzo', 'mudanzas'];
+  if (CERVEZA_DECKS.includes(g.players[1].deckId)) {
+    g.players[1].hand.push(makeCardInstance('cerveza'));
+  }
   log(g, '🔔 ¡Empieza la batalla por el Sanatorio San José!');
   startTurn(g, 0);
   return g;

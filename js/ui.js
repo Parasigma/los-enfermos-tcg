@@ -1007,7 +1007,9 @@ function updateFsButton() {
   if (!b) return;
   /* en la app de escritorio y en la APK ya se va a pantalla completa */
   if (window.electronMP || window.Capacitor) { b.style.display = 'none'; return; }
-  b.textContent = fsActive() ? '✕ SALIR DE PANTALLA COMPLETA' : '⛶ PANTALLA COMPLETA';
+  /* solo el icono (cuadrado pequeño): el texto tapaba controles en móvil */
+  b.textContent = fsActive() ? '✕' : '⛶';
+  b.title = fsActive() ? 'Salir de pantalla completa' : 'Pantalla completa';
 }
 
 function entityFromPoint(x, y) {
