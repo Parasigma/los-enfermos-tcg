@@ -653,6 +653,11 @@ function saveDeck() {
    MODO HISTORIA — MAPA DE ENEMIGOS DEL CAPÍTULO
    ========================================================= */
 
+/* MODO TEST DE HISTORIA: con true, TODOS los enemigos están revelados y
+   se puede luchar contra cualquiera (para probar mazos y diálogos).
+   Poner a false para la progresión real (vencer en orden). */
+const STORY_TEST_MODE = true;
+
 function storyEnemies() {
   return (typeof HISTORIA !== 'undefined' && HISTORIA.capitulo1)
     ? HISTORIA.capitulo1.enemigos : [];
@@ -683,6 +688,7 @@ function storyChapterComplete() { return storyCurrentIndex() === -1; }
 /* ¿conocemos ya la identidad de este enemigo? (el 1º siempre; los
    derrotados y los ya revelados también) */
 function storyIsRevealed(id) {
+  if (STORY_TEST_MODE) return true;
   const en = storyEnemies();
   if (en.length && en[0].id === id) return true;
   return Save.story.defeated.includes(id) || Save.story.revealed.includes(id);
@@ -727,7 +733,8 @@ function renderStoryScreen() {
 
   enemies.forEach((e, i) => {
     const defeated = Save.story.defeated.includes(e.id);
-    const isCurrent = i === curIdx;
+    /* en modo test todos cuentan como «actual»: revelados y luchables */
+    const isCurrent = i === curIdx || (STORY_TEST_MODE && !defeated);
     const known = defeated || isCurrent;           // solo el actual y los vencidos se conocen
     const revealed = storyIsRevealed(e.id);
 
