@@ -717,6 +717,19 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 
 #fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 380; }
 
+/* fantasma de esbirro: mantiene visible la carta que acaba de morir
+   hasta que el golpe la alcanza; entonces se desvanece */
+.death-ghost {
+  position: fixed;
+  margin: 0;
+  transform-origin: top left;
+  transform: scale(var(--gsc, 1));
+  pointer-events: none;
+  z-index: 382;
+  transition: opacity .26s ease;
+}
+.death-ghost.gone { opacity: 0; }
+
 /* partícula emoji genérica (explosiones, subidas, lluvias) */
 .vfx-p {
   position: fixed;

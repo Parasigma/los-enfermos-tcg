@@ -221,11 +221,40 @@ function minionEl(m, mine) {
 /* última posición conocida de cada esbirro (para el VFX de muerte, que se
    dispara cuando el esbirro ya no está en el DOM tras reconstruir el tablero) */
 let lastMinionPos = {};
+/* clon visual de cada esbirro (para dejar un «fantasma» en su sitio si
+   muere: la carta no debe desaparecer hasta que el golpe la alcance) */
+let lastMinionSnap = {};
 function snapshotMinionPositions() {
+  lastMinionSnap = {};
   document.querySelectorAll('.minion[data-uid]').forEach(el => {
     const r = el.getBoundingClientRect();
-    if (r.width) lastMinionPos[el.dataset.uid] = [r.left + r.width / 2, r.top + r.height / 2];
+    if (r.width) {
+      lastMinionPos[el.dataset.uid] = [r.left + r.width / 2, r.top + r.height / 2];
+      lastMinionSnap[el.dataset.uid] = { rect: r, node: el.cloneNode(true) };
+    }
   });
+}
+
+/* planta el fantasma del esbirro (recién retirado del DOM) en su última
+   posición; se desvanece cuando el golpe hace contacto */
+function spawnGhost(uid) {
+  const snap = lastMinionSnap[uid];
+  if (!snap) return null;
+  const g = snap.node;
+  g.classList.add('death-ghost');
+  g.classList.remove('can-attack', 'highlight', 'landing', 'lunge');
+  g.style.left = snap.rect.left + 'px';
+  g.style.top = snap.rect.top + 'px';
+  g.style.setProperty('--gsc', snap.rect.width / 116);
+  $('#fx-layer').appendChild(g);
+  return g;
+}
+function fadeGhost(g, delay) {
+  if (!g) return;
+  setTimeout(() => {
+    g.classList.add('gone');
+    setTimeout(() => g.remove(), 300);
+  }, delay);
 }
 
 function render() {
@@ -799,15 +828,28 @@ function flushFx() {
         break;
       }
       case 'attack': {
-        const el = elForEntity(data.attacker);
-        const tEl = elForEntity(data.target);
-        /* posición del objetivo: su elemento o, si MURIÓ en el golpe (ya
-           no está en el DOM), su última posición conocida */
+        /* si atacante o víctima MURIERON en el golpe (ya no están en el
+           DOM), se plantan sus FANTASMAS: nadie desaparece hasta que la
+           animación llega al objetivo */
+        let el = elForEntity(data.attacker);
+        let ghostA = null, ghostT = null;
+        if (!el && data.attacker && !data.attacker.isHero) {
+          ghostA = spawnGhost(data.attacker.uid);
+          el = ghostA;
+        }
+        let tEl = elForEntity(data.target);
+        if (!tEl && data.target && !data.target.isHero) {
+          ghostT = spawnGhost(data.target.uid);
+          tEl = ghostT;
+        }
         const tPos = tEl ? centerOf(tEl)
           : (data.target && !data.target.isHero ? lastMinionPos[data.target.uid] : null);
         /* golpe dirigido estilo Hearthstone (sin posición, saltito) */
         if (el && tPos) { animStrike(el, tPos[0], tPos[1]); hitDelay = STRIKE_HIT_MS; }
         else if (el) el.classList.add('lunge');
+        /* los fantasmas se desvanecen justo cuando el golpe hace contacto */
+        fadeGhost(ghostA, hitDelay || 0);
+        fadeGhost(ghostT, hitDelay || 0);
         // flecha roja breve para ver quién ataca a quién
         if (el && tPos && !drag) {
           const [x1, y1] = centerOf(el);
