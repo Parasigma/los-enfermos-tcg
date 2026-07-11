@@ -10,7 +10,7 @@
     "start": "electron .",
     "dist": "electron-builder --win portable",
     "build:www": "node scripts/build-www.js",
-    "apk": "node scripts/build-www.js && npx cap sync android && cd android && .\\gradlew.bat assembleDebug"
+    "apk": "node scripts/build-www.js && npx cap sync android && cd android && .\\gradlew.bat assembleDebug && cd .. && node scripts/copy-apk.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

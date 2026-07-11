@@ -18,7 +18,7 @@ const PACK_SIZE = 5;
 /* MODO PRUEBA: sobres gratis ILIMITADOS para testear.
    En true solo para desarrollo; en el juego real va en false:
    2 sobres gratis al día y los demás a PACK_PRICE 💊. */
-const PACKS_TEST_MODE = true;
+const PACKS_TEST_MODE = false;
 
 /* probabilidad de rareza por hueco del sobre (en %) */
 const PACK_RARITY_ODDS = [
