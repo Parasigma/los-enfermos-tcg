@@ -988,6 +988,18 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 }
 .sb-text b { color: var(--gold); }
 
+/* cartel del poder de héroe (hover sobre la habilidad): mismo fondo
+   box9 de los bocadillos, solo el texto de lo que hace */
+.power-tip {
+  position: absolute;
+  width: 380px;
+  padding: 18px 22px;
+  z-index: 60;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .55));
+}
+.power-tip .sb-text { font-size: 17px; }
+
 /* bocadillo del RIVAL: bajo su retrato (arriba), cola hacia arriba */
 .sb-rival {
   left: 620px; top: 210px;

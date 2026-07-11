@@ -304,8 +304,8 @@ function renderHud(idx) {
 
   /* cartel del poder de héroe al dejar el ratón encima (tuyo y del rival) */
   const powerEl = hud.querySelector('.power');
-  powerEl.addEventListener('mouseenter', () => showPreviewPower(p));
-  powerEl.addEventListener('mouseleave', hidePreview);
+  powerEl.addEventListener('mouseenter', () => showPowerTip(p));
+  powerEl.addEventListener('mouseleave', hidePowerTip);
 }
 
 function renderBoard(idx) {
@@ -372,19 +372,37 @@ function showPreviewHero(p) {
     </div>`;
   $('#preview').classList.add('show');
 }
-/* cartel del poder de héroe: nombre, coste y qué hace */
-function showPreviewPower(p) {
+/* cartel del poder de héroe (estilo bocadillo de la historia, fondo
+   box9): SOLO lo que hace el poder. Sale junto a la habilidad. */
+let powerTip = null;
+function hidePowerTip() { if (powerTip) { powerTip.remove(); powerTip = null; } }
+function showPowerTip(p) {
   if (IS_TOUCH) return;
-  const h = p.hero;
-  const pw = h.def.power;
-  $('#preview').innerHTML = `
-    <div class="card big t-spell hero-preview ${p.deckId}">
-      <div class="art"><span class="art-emoji">${pw.icon}</span></div>
-      <div class="name">${pw.name}</div>
-      <div class="text"><i>Poder de héroe de ${h.def.name}</i><br><br>
-        <b>Coste: ${pw.cost} de maná</b> · una vez por turno<br><br>${pw.desc}</div>
-    </div>`;
-  $('#preview').classList.add('show');
+  hidePowerTip();
+  const pw = p.hero.def.power;
+  const hud = p.idx === 0 ? $('#player-hud') : $('#enemy-hud');
+  const powEl = hud && hud.querySelector('.power');
+  const stage = $('#stage');
+  if (!powEl || !stage) return;
+  const tip = document.createElement('div');
+  tip.className = 'power-tip';
+  tip.innerHTML = `<div class="sb-text"><b>${pw.icon} ${pw.name}</b><br>${pw.desc}</div>`;
+  box9(tip);
+  stage.appendChild(tip);
+  /* posición en px de diseño del stage (que va escalado) */
+  const sr = stage.getBoundingClientRect();
+  const scale = sr.width / 1672;
+  const pr = powEl.getBoundingClientRect();
+  const cx = (pr.left + pr.width / 2 - sr.left) / scale;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  const x = Math.max(10, Math.min(1672 - w - 10, cx - w / 2));
+  /* rival: debajo de su habilidad; jugador: encima de la suya */
+  const y = p.idx === 1
+    ? (pr.bottom - sr.top) / scale + 14
+    : (pr.top - sr.top) / scale - h - 14;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+  powerTip = tip;
 }
 
 function hidePreview() { $('#preview').classList.remove('show'); }
