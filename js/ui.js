@@ -330,7 +330,12 @@ function renderPlayerHand() {
     el.style.transform = `rotate(${rot}deg) translateY(${ty}px)`;
     el.style.marginLeft = el.style.marginRight = overlap + 'px';
     if (hiddenDraws.has(c.uid)) el.style.visibility = 'hidden'; // aún volando desde el mazo
-    if (G.current === 0 && !busy && canPlay(G, p, c)) el.classList.add('playable');
+    if (G.current === 0 && !busy && canPlay(G, p, c)) {
+      el.classList.add('playable');
+      /* brillo dorado: la carta ACTIVARÍA su habilidad extra ahora mismo
+         (combo listo, descarte hecho...) — ayuda visual estilo Hearthstone */
+      if (c.def.glowReady && c.def.glowReady(G, p)) el.classList.add('ability-ready');
+    }
     el.addEventListener('mouseenter', () => showPreviewCard(c));
     el.addEventListener('mouseleave', hidePreview);
     /* mantener pulsada (móvil): inspecciona la carta y cancela el arrastre */
@@ -413,6 +418,31 @@ function elForEntity(ent) {
   if (!ent) return null;
   if (ent.isHero) return $(`.portrait[data-hero="${ent.owner}"]`);
   return document.querySelector(`.minion[data-uid="${ent.uid}"]`);
+}
+
+/* golpe estilo Hearthstone: la «mano invisible» levanta la carta, echa
+   el peso hacia atrás y la estampa contra el objetivo; luego vuelve a
+   su sitio con suavidad. El contacto cae a ~STRIKE_HIT_MS del inicio. */
+const STRIKE_MS = 640, STRIKE_HIT_MS = 340;
+function animStrike(el, x2, y2) {
+  const [x1, y1] = centerOf(el);
+  /* px de pantalla -> px de diseño (el stage va escalado) */
+  const sr = $('#stage').getBoundingClientRect();
+  const k = sr.width ? 1672 / sr.width : 1;
+  const dx = (x2 - x1) * k, dy = (y2 - y1) * k;
+  const d = Math.hypot(dx, dy) || 1;
+  const gx = dx - (dx / d) * 26, gy = dy - (dy / d) * 26;  // se frena al chocar
+  const bx = -(dx / d) * 26, by = -(dy / d) * 26 - 12;     // impulso atrás y arriba
+  const prevZ = el.style.zIndex;
+  el.style.zIndex = 80;
+  const anim = el.animate([
+    { transform: 'translate(0,0) scale(1)', easing: 'ease-out' },
+    { transform: `translate(${bx}px,${by}px) scale(1.12)`, offset: 0.34, easing: 'ease-in' },
+    { transform: `translate(${gx}px,${gy}px) scale(1.12)`, offset: 0.53, easing: 'ease-out' },
+    { transform: `translate(${gx * 0.9}px,${gy * 0.9}px) scale(1.05)`, offset: 0.64, easing: 'ease-in-out' },
+    { transform: 'translate(0,0) scale(1)' }
+  ], { duration: STRIKE_MS, composite: 'add' });
+  anim.onfinish = () => { el.style.zIndex = prevZ; };
 }
 
 /* ---------- motor de partículas (coordenadas de ventana) ---------- */
@@ -676,13 +706,18 @@ function spawnSplat(el, text, cls) {
 }
 
 function flushFx() {
+  /* tras un golpe, el daño y las muertes de esa tanda se retrasan al
+     MOMENTO DEL CONTACTO de la animación (si no, el número sale antes) */
+  let hitDelay = 0;
   while (fxQueue.length) {
     const { type, data } = fxQueue.shift();
     switch (type) {
-      case 'damage':
-        spawnSplat(elForEntity(data.target), '-' + data.amount, 'dmg');
-        Sfx.play('damage');
+      case 'damage': {
+        const el = elForEntity(data.target);
+        if (hitDelay) setTimeout(() => { spawnSplat(el, '-' + data.amount, 'dmg'); Sfx.play('damage'); }, hitDelay);
+        else { spawnSplat(el, '-' + data.amount, 'dmg'); Sfx.play('damage'); }
         break;
+      }
       case 'heal': {
         const hEl = elForEntity(data.target);
         spawnSplat(hEl, '+' + data.amount, 'heal');
@@ -692,8 +727,12 @@ function flushFx() {
       }
       case 'death': {
         const p = lastMinionPos[data.minion && data.minion.uid];
-        if (p && typeof VFX !== 'undefined') VFX.death(p[0], p[1]);
-        Sfx.play('death');
+        const boom = () => {
+          if (p && typeof VFX !== 'undefined') VFX.death(p[0], p[1]);
+          Sfx.play('death');
+        };
+        if (hitDelay) setTimeout(boom, hitDelay);
+        else boom();
         break;
       }
       case 'summon': {
@@ -761,21 +800,26 @@ function flushFx() {
       }
       case 'attack': {
         const el = elForEntity(data.attacker);
-        if (el) el.classList.add('lunge');
-        // flecha roja breve para ver quién ataca a quién
         const tEl = elForEntity(data.target);
-        if (el && tEl && !drag) {
+        /* posición del objetivo: su elemento o, si MURIÓ en el golpe (ya
+           no está en el DOM), su última posición conocida */
+        const tPos = tEl ? centerOf(tEl)
+          : (data.target && !data.target.isHero ? lastMinionPos[data.target.uid] : null);
+        /* golpe dirigido estilo Hearthstone (sin posición, saltito) */
+        if (el && tPos) { animStrike(el, tPos[0], tPos[1]); hitDelay = STRIKE_HIT_MS; }
+        else if (el) el.classList.add('lunge');
+        // flecha roja breve para ver quién ataca a quién
+        if (el && tPos && !drag) {
           const [x1, y1] = centerOf(el);
-          const [x2, y2] = centerOf(tEl);
-          arrowShow(x1, y1, x2, y2, '#ff4b3a');
+          arrowShow(x1, y1, tPos[0], tPos[1], '#ff4b3a');
           setTimeout(() => { if (!drag) arrowHide(); }, 700);
         }
-        /* chispas de impacto en el objetivo, sincronizadas con la embestida */
-        if (tEl && typeof VFX !== 'undefined') {
-          const [tx, ty] = centerOf(tEl);
-          setTimeout(() => VFX.impact(tx, ty), 120);
+        /* chispas y sonido en el MOMENTO DEL CONTACTO del golpe */
+        if (tPos && typeof VFX !== 'undefined') {
+          setTimeout(() => { VFX.impact(tPos[0], tPos[1]); Sfx.play('attack'); }, el ? STRIKE_HIT_MS : 0);
+        } else {
+          Sfx.play('attack');
         }
-        Sfx.play('attack');
         break;
       }
       case 'draw': {

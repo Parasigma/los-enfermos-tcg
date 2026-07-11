@@ -170,6 +170,7 @@ const CARDS = {
     name: 'Mote Nuevo', cost: 1, emoji: '🏷️',
     text: 'Roba una carta.<br><b>Combo:</b> roba 2 en su lugar.',
     flavor: 'Mario ya te ha rebautizado. Ahora eres «El Croqueta».',
+    glowReady(g, p) { return p.cardsPlayedThisTurn > 0; },
     spell(g, p, t, combo) { drawCards(g, p, combo ? 2 : 1); }
   },
 
@@ -178,6 +179,7 @@ const CARDS = {
     name: 'Chus, el Chusti Wild', cost: 2, attack: 2, health: 1, emoji: '🕺',
     text: '<b>Combo:</b> gana +1/+1 y <b>Embestida</b>.',
     flavor: 'Viene directo de una fiesta. Nadie sabe de cuál.',
+    glowReady(g, p) { return p.cardsPlayedThisTurn > 0; },
     battlecry(g, p, m, t, combo) {
       if (combo) { m.attack += 1; m.health += 1; m.maxHealth += 1; m.charge = true; log(g, '🎉 ¡Chus llega motivado de la fiesta!'); }
     }
@@ -330,6 +332,7 @@ const CARDS = {
     target: 'any',
     text: 'Inflige <b>1</b> de daño.<br><b>Combo:</b> inflige 3 en su lugar.',
     flavor: '«Es que, a ver, es que no. Es que es todo mal.»',
+    glowReady(g, p) { return p.cardsPlayedThisTurn > 0; },
     spell(g, p, t, combo) { dealDamage(g, t, combo ? 3 : 1); },
     aiTarget(g, p) {
       const dmg = p.cardsPlayedThisTurn > 0 ? 3 : 1;
@@ -812,6 +815,7 @@ const CARDS = {
     name: 'Celador Envenenado', cost: 2, attack: 2, health: 3, emoji: '🤢',
     text: '<b>Grito de Batalla:</b> si has descartado una carta este turno, gana <b>+2/+2</b>.',
     flavor: 'El puré llevaba «vitaminas». Ahora vota a favor de la fuga.',
+    glowReady(g, p) { return p.discardedThisTurn > 0; },
     battlecry(g, p, m) {
       if (p.discardedThisTurn > 0) {
         m.attack += 2; m.health += 2; m.maxHealth += 2;
@@ -885,6 +889,7 @@ const CARDS = {
     taunt: true,
     text: '<b>Provocar</b>. <b>Grito de Batalla:</b> gana <b>+1/+1</b> por cada carta que hayas descartado esta partida.',
     flavor: 'Se compró el uniforme en AliExpress. Nadie se atreve a decirle que aquí no trabaja.',
+    glowReady(g, p) { return (p.discardsTotal || 0) > 0; },
     battlecry(g, p, m) {
       const n = p.discardsTotal || 0;
       if (n > 0) {
@@ -1401,6 +1406,7 @@ const CARDS = {
     name: 'Actor Secundario', cost: 2, attack: 2, health: 3, emoji: '🎭',
     text: '<b>Grito de Batalla:</b> si el rival tiene más esbirros que tú, gana <b>+1/+1</b> (rendir siempre a rebufo).',
     flavor: 'Nunca protagonista. Siempre en la foto.',
+    glowReady(g, p) { return g.players[1 - p.idx].board.length > p.board.length; },
     battlecry(g, p, m) {
       if (g.players[1 - p.idx].board.length > p.board.length) {
         m.attack += 1; m.health += 1; m.maxHealth += 1;
