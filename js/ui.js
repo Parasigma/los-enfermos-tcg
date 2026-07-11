@@ -301,6 +301,11 @@ function renderHud(idx) {
   const portrait = hud.querySelector('.portrait');
   portrait.addEventListener('mouseenter', () => showPreviewHero(p));
   portrait.addEventListener('mouseleave', hidePreview);
+
+  /* cartel del poder de héroe al dejar el ratón encima (tuyo y del rival) */
+  const powerEl = hud.querySelector('.power');
+  powerEl.addEventListener('mouseenter', () => showPreviewPower(p));
+  powerEl.addEventListener('mouseleave', hidePreview);
 }
 
 function renderBoard(idx) {
@@ -367,6 +372,21 @@ function showPreviewHero(p) {
     </div>`;
   $('#preview').classList.add('show');
 }
+/* cartel del poder de héroe: nombre, coste y qué hace */
+function showPreviewPower(p) {
+  if (IS_TOUCH) return;
+  const h = p.hero;
+  const pw = h.def.power;
+  $('#preview').innerHTML = `
+    <div class="card big t-spell hero-preview ${p.deckId}">
+      <div class="art"><span class="art-emoji">${pw.icon}</span></div>
+      <div class="name">${pw.name}</div>
+      <div class="text"><i>Poder de héroe de ${h.def.name}</i><br><br>
+        <b>Coste: ${pw.cost} de maná</b> · una vez por turno<br><br>${pw.desc}</div>
+    </div>`;
+  $('#preview').classList.add('show');
+}
+
 function hidePreview() { $('#preview').classList.remove('show'); }
 
 /* ---------------- ANIMACIONES / FX ---------------- */

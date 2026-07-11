@@ -110,7 +110,7 @@ HISTORIA.capitulo1 = {
       victoria: 'Víctor ingresa. Mantenimiento ya le ha pedido que NO toque la caldera. El seguro, que sí.'
     },
     {
-      id: 'rabasco', nombre: 'Rabasco «El Cornudo»',
+      id: 'rabasco', nombre: 'Rabasco «El Picado Maestro»',
       hero: 'rabascoHero', deck: 'picado', desbloquea: 'picado',
       emoji: '🐏', foto: 'assets/ilustraciones/rabasco.png',
       reto: 'Picadísimo. Cada golpe que aguanta le afila más el cuerno.',

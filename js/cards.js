@@ -128,7 +128,7 @@ const HEROES = {
   },
   rabascoHero: {
     id: 'rabascoHero',
-    name: 'Rabasco «El Cornudo»',
+    name: 'Rabasco «El Picado Maestro»',
     title: 'Picado y con el cuerno afilado',
     portrait: '🐏',
     power: {
@@ -1724,7 +1724,7 @@ const DECKS = {
     ...x2('motoTrucada'), ...x2('rutaDominguera'), 'reclamacionSeguro', 'victorLamas',
     ...x2('celador'), ...x2('chus'), ...x2('victor'), ...x2('terapiaChoque')
   ],
-  /* mazo de Rabasco el Cornudo: agresivo, todo el mundo picado */
+  /* mazo de Rabasco el Picado Maestro: agresivo, todo el mundo picado */
   picado: [
     ...x2('moscaCojonera'), ...x2('toqueCuerno'), ...x2('borregoPicado'), ...x2('cabreoInstantaneo'),
     ...x2('cuernoAfilado'), ...x2('rabascoFurioso'),
