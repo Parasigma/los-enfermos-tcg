@@ -170,9 +170,10 @@ const SHOP_ITEMS = [
   }
 ];
 
-/* REVERSOS a la venta (pestaña propia de la tienda); los que no tienen
-   precio se desbloquean por logro */
-const CARDBACK_PRICES = { dorado: 1500 };
+/* REVERSOS a la venta (pestaña propia de la tienda); vacío por ahora:
+   los reversos actuales se desbloquean por LOGRO (dorado/diamante son
+   exclusivos de las cartas de ese grado, no se compran) */
+const CARDBACK_PRICES = {};
 
 const SHOP_SLOT_Y = [191, 422, 665];
 let shopPage = 0;

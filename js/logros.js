@@ -59,9 +59,7 @@ const LOGROS = [
     rewardDesc: 'Carta especial «Trofeo del Manicomio» + Reverso «Corrupto»' },
   { id: 'diamante_sobre', tier: 'oro', name: 'Brilla en la oscuridad',
     desc: 'Saca una carta DIAMOND de un sobre.',
-    cond: () => Save.counters.diamondsPulled >= 1,
-    reward: { type: 'back', id: 'diamante' },
-    rewardDesc: 'Reverso de carta «Diamante»' },
+    cond: () => Save.counters.diamondsPulled >= 1 },
 
   /* --- platino (con recompensa) --- */
   { id: 'intocable', tier: 'platino', name: 'Intocable',

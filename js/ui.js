@@ -418,12 +418,10 @@ function initCronica() {
    Coleccionables: el activo (Save.cardBack) tiñe todos los dorsos vía
    la variable CSS --card-back. Para añadir reversos nuevos: entrada
    aquí (y si se desbloquea por logro, su condición en owned()). */
+/* OJO: los reversos dorado y diamante NO son equipables — son exclusivos
+   de las cartas DORADAS/DIAMOND en el revelado de sobres. */
 const CARD_BACKS = [
   { id: 'clasico', name: 'Clásico del Manicomio', img: 'assets/reverso.png', owned: () => true },
-  { id: 'dorado', name: 'Reverso Dorado', img: 'assets/reverso_gold.png',
-    owned: () => Save.cardBacksOwned.includes('dorado'), hint: 'Se compra en la Tienda' },
-  { id: 'diamante', name: 'Reverso Diamante', img: 'assets/reverso_diamond.png',
-    owned: () => Save.cardBacksOwned.includes('diamante'), hint: 'Logro: saca una DIAMOND de un sobre' },
   { id: 'corrupto', name: 'Reverso Corrupto', img: 'assets/reverso_corrupto.png',
     owned: () => Save.cardBacksOwned.includes('corrupto'), hint: 'Logro: completa el capítulo 1' },
   { id: 'cyborg', name: 'Reverso Cyborg', img: 'assets/reverso_cyborg.png',
