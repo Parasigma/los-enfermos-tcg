@@ -423,7 +423,11 @@ const CARD_BACKS = [
   { id: 'dorado', name: 'Reverso Dorado', img: 'assets/reverso_gold.png',
     owned: () => Save.cardBacksOwned.includes('dorado'), hint: 'Se compra en la Tienda' },
   { id: 'diamante', name: 'Reverso Diamante', img: 'assets/reverso_diamond.png',
-    owned: () => Save.cardBacksOwned.includes('diamante'), hint: 'Logro: saca una DIAMOND de un sobre' }
+    owned: () => Save.cardBacksOwned.includes('diamante'), hint: 'Logro: saca una DIAMOND de un sobre' },
+  { id: 'corrupto', name: 'Reverso Corrupto', img: 'assets/reverso_corrupto.png',
+    owned: () => Save.cardBacksOwned.includes('corrupto'), hint: 'Logro: completa el capítulo 1' },
+  { id: 'cyborg', name: 'Reverso Cyborg', img: 'assets/reverso_cyborg.png',
+    owned: () => Save.cardBacksOwned.includes('cyborg'), hint: 'Logro: vence a un paciente sin perder ni un punto de vida' }
 ];
 function applyCardBack() {
   const cb = CARD_BACKS.find(b => b.id === Save.cardBack && b.owned()) || CARD_BACKS[0];

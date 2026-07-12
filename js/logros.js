@@ -55,8 +55,8 @@ const LOGROS = [
     desc: 'Completa el capítulo 1: ingresa a todos los pacientes.',
     cond: () => typeof storyEnemies === 'function' && storyEnemies().length > 0 &&
       storyEnemies().every(e => Save.story.defeated.includes(e.id)),
-    reward: { type: 'card', id: 'trofeoManicomio' },
-    rewardDesc: 'Carta especial «Trofeo del Manicomio»' },
+    reward: [{ type: 'card', id: 'trofeoManicomio' }, { type: 'back', id: 'corrupto' }],
+    rewardDesc: 'Carta especial «Trofeo del Manicomio» + Reverso «Corrupto»' },
   { id: 'diamante_sobre', tier: 'oro', name: 'Brilla en la oscuridad',
     desc: 'Saca una carta DIAMOND de un sobre.',
     cond: () => Save.counters.diamondsPulled >= 1,
@@ -64,6 +64,11 @@ const LOGROS = [
     rewardDesc: 'Reverso de carta «Diamante»' },
 
   /* --- platino (con recompensa) --- */
+  { id: 'intocable', tier: 'platino', name: 'Intocable',
+    desc: 'Vence a un paciente de la historia sin perder ni un solo punto de vida en toda la partida.',
+    cond: () => (Save.counters.flawless || 0) >= 1,
+    reward: { type: 'back', id: 'cyborg' },
+    rewardDesc: 'Reverso de carta «Cyborg»' },
   { id: 'boss_caido', tier: 'platino', name: 'El verdadero enfermo',
     desc: 'Derrota a Mario, el Paciente Supremo.',
     cond: () => Save.story.defeated.includes('mario'),
@@ -85,6 +90,7 @@ const LOGROS = [
 
 function grantLogroReward(r) {
   if (!r) return;
+  if (Array.isArray(r)) { r.forEach(grantLogroReward); return; }   // multi-recompensa
   if (r.type === 'card' && CARDS[r.id]) {
     Save.cardCollection[r.id] = (Save.cardCollection[r.id] || 0) + 1;
   } else if (r.type === 'back') {

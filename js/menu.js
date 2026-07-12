@@ -32,7 +32,7 @@ const Save = {
   cardBack: 'clasico',          // reverso de carta activo (sistema de reversos)
   cardBacksOwned: ['clasico'],  // reversos conseguidos (tienda / logros)
   logros: [],                   // ids de logros completados
-  counters: { packsOpened: 0, trades: 0, diamondsPulled: 0 },  // para logros
+  counters: { packsOpened: 0, trades: 0, diamondsPulled: 0, flawless: 0 },  // para logros
   settings: { sound: true, fastAI: false, showLog: true, cronicaVisible: true }
 };
 
@@ -587,6 +587,11 @@ function recordBattle(winner) {
   if (st.streak > st.bestStreak) st.bestStreak = st.streak;
   const esperado = 1 / (1 + Math.pow(10, (oppElo - st.elo) / 400));
   st.elo = Math.max(0, Math.round(st.elo + 32 * ((win ? 1 : 0) - esperado)));
+  /* victoria PERFECTA contra un paciente de la historia: sin recibir
+     ni un punto de daño en toda la partida (logro «Intocable») */
+  if (win && enemy && typeof G !== 'undefined' && G && !G.players[0].hero.tookDamage) {
+    Save.counters.flawless = (Save.counters.flawless || 0) + 1;
+  }
   st.log.unshift({ vs, mode, win, elo: st.elo, t: Date.now() });
   if (st.log.length > 30) st.log.length = 30;
   persistSave();

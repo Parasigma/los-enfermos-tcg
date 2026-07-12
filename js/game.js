@@ -181,6 +181,7 @@ function dealDamage(g, ent, n) {
   if (n <= 0 || !ent || ent.dead) return;
   if (ent.isHero) {
     ent.hp -= n;
+    ent.tookDamage = true;   // para el logro «sin perder ni un punto de vida»
     fx('damage', { target: ent, amount: n });
     checkGameOver(g);
   } else {
@@ -414,6 +415,7 @@ function doAttack(g, attacker, target) {
 
   if (target.isHero) {
     target.hp -= atkVal;
+    target.tookDamage = true;
     fx('damage', { target, amount: atkVal });
   } else {
     target.health -= atkVal;
@@ -421,7 +423,7 @@ function doAttack(g, attacker, target) {
     notifyDamaged(g, target);
   }
   if (retVal > 0) {
-    if (attacker.isHero) attacker.hp -= retVal;
+    if (attacker.isHero) { attacker.hp -= retVal; attacker.tookDamage = true; }
     else {
       attacker.health -= retVal;
       notifyDamaged(g, attacker);
