@@ -32,10 +32,13 @@
     <div id="player-hand" class="hand-row"></div>
     <button id="end-turn" aria-label="Fin del turno"></button>
     <!-- CRÓNICA extraíble: la placa (assets/cronica.png) se desliza fuera
-         con el botón pintado OCULTAR CRÓNICA; #cronica-btn la devuelve -->
-    <div id="cronica-layer">
-      <div id="log-panel"><div id="log"></div></div>
-      <div id="log-toggle" title="Ocultar la crónica"></div>
+         con el botón pintado OCULTAR CRÓNICA y DESAPARECE en el borde
+         (el clip la recorta); #cronica-btn la devuelve -->
+    <div id="cronica-clip">
+      <div id="cronica-layer">
+        <div id="log-panel"><div id="log"></div></div>
+        <div id="log-toggle" title="Ocultar la crónica"></div>
+      </div>
     </div>
     <div id="cronica-btn" class="hidden" title="Mostrar la crónica"></div>
     <button id="btn-pause" title="Menú de pausa">⏸</button>
@@ -116,7 +119,8 @@
         <div class="coins-badge">💊 <span id="menu-coins">0</span> pastillas</div>
         <div id="menu-profile" class="profile-badge"></div>
       </div>
-      <div class="version-tag">v4.2</div>
+      <button id="btn-logros" class="small-btn">🏅 Logros</button>
+      <div class="version-tag">v4.3</div>
     </div>
   </div>
 
@@ -162,12 +166,9 @@
         <button id="tab-packs" class="shop-tab" aria-label="Sobres"></button>
       </div>
       <div id="shop-packs-panel" class="hidden">
-        <p class="lore packs-lore">
-          Cada sobre trae <b>5 cartas</b> al azar — repetidas o totalmente nuevas — y, con mucha
-          suerte, versiones <b>✨ brillantes</b>, <b>🏆 DORADAS</b>, <b>🌀 alteradas</b> o <b>🌈 foil</b>.
-        </p>
         <div id="pack-area"></div>
         <div id="pack-info" class="hint"></div>
+        <button id="btn-pack-info" class="small-btn">ℹ️ Información</button>
       </div>
       <div id="shop-coins">0</div>
       <div id="shop-pager">
@@ -250,6 +251,40 @@
     </div>
   </div>
 
+  <!-- INFORMACIÓN DE SOBRES: cómo funcionan y probabilidades reales -->
+  <div id="packinfo-overlay" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:36px">ℹ️ SOBRES DEL MANICOMIO</h2>
+      <div id="packinfo-body" class="lore" style="text-align:left"></div>
+      <div class="menu-buttons">
+        <button id="packinfo-close" class="img-btn">✔ Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGROS: ocultos hasta completarse, con rangos y recompensas -->
+  <div id="logros-screen" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:40px">🏅 LOGROS</h2>
+      <div id="logros-body"></div>
+      <div class="menu-buttons">
+        <button class="img-btn" data-back>← Volver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRMACIÓN con la UI del juego (rendirse, etc.) -->
+  <div id="confirm-overlay" class="overlay hidden">
+    <div class="menu-box confirm-box">
+      <h2 class="logo" style="font-size:34px" id="confirm-title">🏳️ ¿SEGURO?</h2>
+      <p class="lore" id="confirm-text"></p>
+      <div class="menu-buttons confirm-buttons">
+        <button id="confirm-yes" class="img-btn">✔ Sí</button>
+        <button id="confirm-no" class="img-btn">✖ Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- FICHA DEL PACIENTE: perfil, historial de batallas y ELO -->
   <div id="profile-screen" class="overlay hidden">
     <div class="menu-box">
@@ -287,6 +322,7 @@
 <script src="js/card3d.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/menu.js"></script>
+<script src="js/logros.js"></script>
 <script src="js/packs.js"></script>
 <script src="js/historia.js"></script>
 <script src="js/online.js"></script>

@@ -686,17 +686,25 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
    La placa vive en su propia capa (assets/cronica.png, en la posición
    exacta donde estaba pintada) y se desliza fuera del tablero. */
 
-#cronica-layer {
+/* el clip recorta la placa: al deslizarse DESAPARECE en el borde */
+#cronica-clip {
   position: absolute;
   left: 1px; top: 159px;
   width: 216px; height: 623px;
-  background: url('../assets/cronica.png') 0 0 / 100% 100% no-repeat;
+  overflow: hidden;
   z-index: 4;
+  pointer-events: none;
+}
+#cronica-layer {
+  position: absolute;
+  inset: 0;
+  background: url('../assets/cronica.png') 0 0 / 100% 100% no-repeat;
+  pointer-events: auto;
   /* puerta corredera: se desliza suave hacia el borde izquierdo */
   transition: transform .65s cubic-bezier(.45, 0, .18, 1);
 }
 #cronica-layer.oculta {
-  transform: translateX(-112%);
+  transform: translateX(-103%);
   pointer-events: none;
 }
 /* pestaña para volver a sacar la crónica (imagen del usuario si existe;
@@ -1638,6 +1646,82 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   color: var(--parchment);
 }
 #pack-banner b { color: var(--gold); }
+
+/* ---------------- LOGROS ---------------- */
+
+/* botón pequeño abajo-derecha del menú principal */
+#btn-logros {
+  position: absolute;
+  right: 26px; bottom: 64px;
+  font-size: 15px;
+  z-index: 5;
+}
+
+.logros-list {
+  max-height: 380px;
+  overflow-y: auto;
+  text-align: left;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 4px;
+}
+.lg-row {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(6, 16, 14, .6);
+  border: 2px solid var(--lt-color, rgba(120, 150, 140, .35));
+  border-radius: 12px;
+  padding: 9px 12px;
+}
+.lg-row .lg-medal { font-size: 30px; flex-shrink: 0; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .5)); }
+.lg-info { font-size: 14px; line-height: 1.35; }
+.lg-tier {
+  font-size: 11px; font-weight: bold;
+  color: var(--lt-color, #a8c2bb);
+  letter-spacing: 1px; text-transform: uppercase;
+  margin-left: 6px;
+}
+.lg-desc { color: #a8c2bb; font-size: 12.5px; }
+.lg-reward { color: var(--gold); font-size: 12.5px; }
+.lg-hidden { opacity: .65; border-style: dashed; }
+
+/* aviso flotante de logro desbloqueado */
+.logro-toast {
+  position: fixed;
+  left: 50%; top: 18px;
+  transform: translate(-50%, -130%);
+  z-index: 900;
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(8, 20, 17, .96);
+  border: 2px solid var(--lt-color, var(--gold));
+  border-radius: 16px;
+  padding: 12px 22px;
+  color: var(--parchment);
+  font-size: 14.5px;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .6));
+  transition: transform .45s cubic-bezier(.34, 1.4, .64, 1);
+  pointer-events: none;
+}
+.logro-toast.show { transform: translate(-50%, 0); }
+.logro-toast .lg-medal { font-size: 34px; }
+.logro-toast b { color: var(--lt-color, var(--gold)); }
+.logro-toast i { color: var(--gold); font-size: 13px; }
+
+/* ventana de confirmación (rendirse...) */
+#confirm-overlay { z-index: 720; }
+.confirm-box { max-width: 480px; }
+.confirm-buttons { display: flex; gap: 14px; justify-content: center; }
+
+/* botón de información de los sobres (abajo-derecha del panel) */
+#btn-pack-info {
+  position: absolute;
+  right: 16px; bottom: 12px;
+  font-size: 12.5px;
+  z-index: 5;
+}
+.pi-list { margin: 4px 0 10px 26px; }
+.pi-list li { margin-bottom: 3px; }
+
+/* miniatura de reverso en la tienda */
+.ss-back { height: 92%; object-fit: contain; border-radius: 8px; }
 
 /* ---------------- ENTORNO (capítulo 2) ---------------- */
 

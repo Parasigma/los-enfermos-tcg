@@ -1592,6 +1592,15 @@ const CARDS = {
     flavor: 'La creación definitiva de Cauntu. Odia a Fiti a nivel de firmware.'
   },
 
+  /* carta ESPECIAL de logro: no está en ningún set (no sale en sobres
+     ni afecta al meta) — solo se consigue completando el capítulo 1 */
+  trofeoManicomio: {
+    id: 'trofeoManicomio', clazz: 'neutral', type: 'minion', rarity: 'legendaria',
+    name: 'Trofeo del Manicomio', cost: 1, attack: 1, health: 1, emoji: '🏆',
+    text: 'No hace absolutamente nada. Pero TÚ completaste el capítulo 1.',
+    flavor: 'Bañado en oro de verdad*. (*El oro no es de verdad.)'
+  },
+
   cerveza: {
     id: 'cerveza', clazz: 'neutral', type: 'spell', rarity: 'común', token: true,
     name: 'Cerveza Gratis', cost: 0, emoji: '🍺',

@@ -30,6 +30,9 @@ const Save = {
   tradeOut: [],                 // envíos en depósito pendientes (regalos/intercambios)
   cardMinus: {},                // cartas ENVIADAS a amigos: descuentan de tus copias
   cardBack: 'clasico',          // reverso de carta activo (sistema de reversos)
+  cardBacksOwned: ['clasico'],  // reversos conseguidos (tienda / logros)
+  logros: [],                   // ids de logros completados
+  counters: { packsOpened: 0, trades: 0, diamondsPulled: 0 },  // para logros
   settings: { sound: true, fastAI: false, showLog: true, cronicaVisible: true }
 };
 
@@ -164,6 +167,13 @@ const SHOP_ITEMS = [
     img: 'assets/ilustraciones/mario.png',
     name: 'Mazo: El Paciente Supremo',
     desc: 'MARIO SUPREMO como héroe jugable (poder: Mover los Hilos, roba ideas de la mano rival) y 12 cartas de control mental: motes que hunden, engaños entre esbirros y el CONTROL MENTAL definitivo.'
+  },
+  /* REVERSOS de carta (cosméticos): se equipan en la Ficha del Paciente */
+  {
+    cardback: 'dorado', emoji: '🂠', price: 1500,
+    img: 'assets/reverso_gold.png',
+    name: 'Reverso: Dorado',
+    desc: 'Reverso cosmético bañado en oro para TODOS tus dorsos (mano rival, robos y sobres). Se equipa en la Ficha del Paciente. Puro postureo de lujo.'
   }
 ];
 
@@ -200,6 +210,9 @@ function loadSave() {
       if (Array.isArray(s.tradeOut)) Save.tradeOut = s.tradeOut;
       if (s.cardMinus && typeof s.cardMinus === 'object') Save.cardMinus = s.cardMinus;
       if (typeof s.cardBack === 'string') Save.cardBack = s.cardBack;
+      if (Array.isArray(s.cardBacksOwned)) Save.cardBacksOwned = s.cardBacksOwned;
+      if (Array.isArray(s.logros)) Save.logros = s.logros;
+      if (s.counters && typeof s.counters === 'object') Object.assign(Save.counters, s.counters);
 
       /* migración de guardados antiguos (mazo único o mazo por héroe) */
       if (!Array.isArray(s.customDecks)) {
@@ -507,11 +520,14 @@ function tradeRead() {
       if (availableCopies(mia) <= 0) return note('❌ Ya no tienes copias libres de esa carta.');
       removeCardCopy(mia);          // tu carta SALE hacia tu amigo
       addSharedCard(obj.c);         // la suya ENTRA en tu colección
+      Save.counters.trades++;
+      persistSave();
       const ans = { k: 'ans', c: mia, o: obj.c, r: obj.r, f: { i: Save.profile.id, n: Save.profile.name }, t: Date.now() };
       document.getElementById('trade-out').value = tradeEncode(ans);
       note(`🎉 <b>${card.name}</b> es tuya y tu <b>${CARDS[mia].name}</b> ha salido hacia tu amigo. Envíale el código de respuesta (arriba) para que la reciba.`);
       Sfx.play('win');
       renderTradePending();
+      if (typeof checkLogros === 'function') checkLogros();
     };
     const b2 = document.createElement('button');
     b2.className = 'small-btn danger'; b2.textContent = '✖ Rechazar';
@@ -533,10 +549,12 @@ function tradeRead() {
     b1.onclick = () => {
       addSharedCard(obj.c);                                // su carta entra
       Save.tradeOut = Save.tradeOut.filter(x => x !== mine); // la tuya ya no vuelve
+      Save.counters.trades++;
       persistSave();
       note(`🎉 <b>${card.name}</b> añadida a tu colección. Intercambio completado.`);
       Sfx.play('win');
       renderTradePending();
+      if (typeof checkLogros === 'function') checkLogros();
     };
     box.append(b1);
   }
@@ -575,6 +593,7 @@ function recordBattle(winner) {
   st.log.unshift({ vs, mode, win, elo: st.elo, t: Date.now() });
   if (st.log.length > 30) st.log.length = 30;
   persistSave();
+  if (typeof checkLogros === 'function') checkLogros();
 }
 
 function renderProfile() {
@@ -609,9 +628,10 @@ function renderProfile() {
     <h3 class="cb-title">🂠 Reverso de cartas</h3>
     <div class="cardback-list">
       ${CARD_BACKS.map(b => `
-        <div class="cb-item ${b.owned() ? '' : 'locked'} ${Save.cardBack === b.id ? 'active' : ''}" data-back="${b.id}" title="${b.name}">
+        <div class="cb-item ${b.owned() ? '' : 'locked'} ${Save.cardBack === b.id ? 'active' : ''}" data-back="${b.id}"
+             title="${b.owned() ? b.name : b.name + ' — ' + (b.hint || 'Bloqueado')}">
           <div class="cb-img" style="background-image:url('${b.img}')"></div>
-          <span>${b.name}</span>
+          <span>${b.owned() ? b.name : '🔒 ' + b.name}</span>
         </div>`).join('')}
     </div>`;
   el.querySelectorAll('.cb-item:not(.locked)').forEach(it =>
@@ -625,7 +645,7 @@ function renderProfile() {
 
 /* ---------- navegación entre pantallas ---------- */
 
-const SCREENS = ['register-screen', 'main-menu', 'story-screen', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'profile-screen', 'trade-screen', 'end-overlay'];
+const SCREENS = ['register-screen', 'main-menu', 'story-screen', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'profile-screen', 'trade-screen', 'logros-screen', 'end-overlay'];
 
 function showScreen(id) {
   for (const s of SCREENS) {
@@ -648,6 +668,7 @@ function showScreen(id) {
   if (id === 'settings-screen') renderSettings();
   if (id === 'profile-screen') renderProfile();
   if (id === 'trade-screen') renderTradeScreen();
+  if (id === 'logros-screen') renderLogros();
   if (typeof fitOverlays === 'function') fitOverlays();
 }
 
@@ -1011,6 +1032,7 @@ function storyDefeat(id) {
   /* vencer NO regala el mazo: desbloquea su COMPRA en la tienda (deriva de
      los enemigos derrotados, ver deckPurchaseUnlocked) */
   persistSave();
+  if (typeof checkLogros === 'function') checkLogros();
 }
 
 /* ¿se puede COMPRAR ya el mazo de este set? (su paciente está derrotado) */
@@ -1132,6 +1154,7 @@ function renderShop() {
   const storySets = storyUnlockSets();
   const entries = [];
   for (const item of SHOP_ITEMS) {
+    if (item.cardback) { entries.push({ type: 'cardback', item }); continue; }  // reversos: siempre
     if (!storySets.has(item.set)) { entries.push({ type: 'buy', item }); continue; } // expansiones: siempre
     /* mazo de historia: comprable solo si venciste a su paciente y no lo tienes */
     if (Save.ownedSets.includes(item.set)) continue;
@@ -1165,7 +1188,31 @@ function renderShop() {
     b.className = 'painted-btn shop-buy';
     b.style.top = (y + 59) + 'px';
 
-    if (entry.type === 'locked') {
+    if (entry.type === 'cardback') {
+      /* reverso cosmético: se compra una vez y se equipa en la ficha */
+      const item = entry.item;
+      const owned = Save.cardBacksOwned.includes(item.cardback);
+      const canBuy = !owned && Save.coins >= item.price;
+      a.className = 'shop-slot-art' + (owned ? ' owned' : '');
+      a.innerHTML = `<img class="ss-back" src="${item.img}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'slot-emoji',textContent:'${item.emoji}'}))">`;
+      t.innerHTML = `
+        <div class="ss-name">${item.name} <span class="ss-cards">· cosmético</span></div>
+        <div class="ss-desc">${item.desc}</div>`;
+      b.classList.toggle('owned', owned);
+      b.disabled = owned || !canBuy;
+      b.textContent = owned ? '✔ COMPRADO' : item.price;
+      b.title = owned ? 'Ya tienes este reverso'
+        : canBuy ? `Comprar por ${item.price} 💊`
+        : `Necesitas ${item.price} 💊 (tienes ${Save.coins})`;
+      b.addEventListener('click', () => {
+        if (owned || Save.coins < item.price) return;
+        Save.coins -= item.price;
+        Save.cardBacksOwned.push(item.cardback);
+        persistSave();
+        Sfx.play('win');
+        renderShop();
+      });
+    } else if (entry.type === 'locked') {
       /* ficha misteriosa: no revela ni cuántos mazos ni cuáles */
       a.className = 'shop-slot-art locked';
       a.innerHTML = `<span class="slot-emoji">🔒</span>`;

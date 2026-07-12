@@ -419,11 +419,18 @@ function initCronica() {
    la variable CSS --card-back. Para añadir reversos nuevos: entrada
    aquí (y si se desbloquea por logro, su condición en owned()). */
 const CARD_BACKS = [
-  { id: 'clasico', name: 'Clásico del Manicomio', img: 'assets/reverso.png', owned: () => true }
+  { id: 'clasico', name: 'Clásico del Manicomio', img: 'assets/reverso.png', owned: () => true },
+  { id: 'dorado', name: 'Reverso Dorado', img: 'assets/reverso_gold.png',
+    owned: () => Save.cardBacksOwned.includes('dorado'), hint: 'Se compra en la Tienda' },
+  { id: 'diamante', name: 'Reverso Diamante', img: 'assets/reverso_diamond.png',
+    owned: () => Save.cardBacksOwned.includes('diamante'), hint: 'Logro: saca una DIAMOND de un sobre' }
 ];
 function applyCardBack() {
   const cb = CARD_BACKS.find(b => b.id === Save.cardBack && b.owned()) || CARD_BACKS[0];
-  document.documentElement.style.setProperty('--card-back', `url('${cb.img}')`);
+  /* URL ABSOLUTA: la relativa dentro de la variable CSS se resolvía mal
+     y los dorsos salían transparentes */
+  const abs = new URL(cb.img, document.baseURI).href;
+  document.documentElement.style.setProperty('--card-back', `url('${abs}')`);
 }
 
 function renderEnemyHand() {
@@ -1660,19 +1667,44 @@ function closePause() {
   $('#pause-menu').classList.add('hidden');
 }
 
+/* ventana de confirmación con la UI del juego (sustituye al confirm()
+   del navegador). onYes se ejecuta solo si el jugador acepta. */
+let confirmYesFn = null;
+function showGameConfirm(text, onYes, title) {
+  $('#confirm-title').textContent = title || '🏳️ ¿SEGURO?';
+  $('#confirm-text').innerHTML = text;
+  confirmYesFn = onYes;
+  $('#confirm-overlay').classList.remove('hidden');
+  fitOverlays();
+}
+function hideGameConfirm() {
+  $('#confirm-overlay').classList.add('hidden');
+  confirmYesFn = null;
+}
+function initGameConfirm() {
+  $('#confirm-yes').addEventListener('click', () => {
+    const fn = confirmYesFn;
+    hideGameConfirm();
+    if (fn) fn();
+  });
+  $('#confirm-no').addEventListener('click', hideGameConfirm);
+}
+
 function surrenderGame() {
   if (typeof MP !== 'undefined' && MP.active) {
-    if (!confirm('¿Abandonar la partida online?')) return;
-    closePause();
-    mpLeave();
+    showGameConfirm('¿Abandonar la partida online?', () => {
+      closePause();
+      mpLeave();
+    });
     return;
   }
-  if (!confirm('¿Rendirte? Contará como derrota.')) return;
-  closePause();
-  log(G, '🏳️ ' + heroName(G.players[0]) + ' se rinde. El Director firma su propio ingreso.');
-  G.players[0].hero.hp = 0;
-  checkGameOver(G);
-  render();
+  showGameConfirm('¿Rendirte? Contará como <b>derrota</b> en tu expediente.', () => {
+    closePause();
+    log(G, '🏳️ ' + heroName(G.players[0]) + ' se rinde. El Director firma su propio ingreso.');
+    G.players[0].hero.hp = 0;
+    checkGameOver(G);
+    render();
+  });
 }
 
 function restartGame() {

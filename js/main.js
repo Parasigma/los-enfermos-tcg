@@ -52,6 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-trade-copy').addEventListener('click', tradeCopy);
   document.getElementById('btn-trade-read').addEventListener('click', tradeRead);
 
+  /* información de sobres (reglas y probabilidades) */
+  document.getElementById('btn-pack-info').addEventListener('click', showPackInfo);
+  document.getElementById('packinfo-close').addEventListener('click', () =>
+    document.getElementById('packinfo-overlay').classList.add('hidden'));
+
+  /* logros: botón pequeño del menú + chequeo retroactivo al arrancar */
+  document.getElementById('btn-logros').addEventListener('click', () => showScreen('logros-screen'));
+  checkLogros();
+
   /* la placa del perfil abre la FICHA DEL PACIENTE (historial + ELO) */
   const profBadge = document.getElementById('menu-profile');
   if (profBadge) {
@@ -163,6 +172,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* inspector de carta en grande (falso 3D) */
   initCardInspector();
+
+  /* ventana de confirmación con la UI del juego */
+  initGameConfirm();
 
   /* pantalla completa en navegador */
   document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);

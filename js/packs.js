@@ -148,9 +148,31 @@ function applyPack(cards) {
       if (!prev || VARIANT_INFO[c.variant].rank > VARIANT_INFO[prev].rank) {
         Save.cardVariants[c.id] = c.variant;
       }
+      if (c.variant === 'diamond') Save.counters.diamondsPulled++;
     }
   }
+  Save.counters.packsOpened++;
   persistSave();
+  if (typeof checkLogros === 'function') checkLogros();
+}
+
+/* ---------- INFORMACIÓN de sobres: reglas y probabilidades ---------- */
+
+function showPackInfo() {
+  const body = document.getElementById('packinfo-body');
+  const rar = PACK_RARITY_ODDS.map(([r, p]) => `<li><b>${r.charAt(0).toUpperCase() + r.slice(1)}</b>: ${p}%</li>`).join('');
+  const varNames = { diamond: '💎 DIAMOND', dorada: '🏆 Dorada', alterada: '🌀 Alterada', foil: '🌈 Foil' };
+  const vars = VARIANT_ODDS.map(([v, p]) => `<li><b>${varNames[v] || v}</b>: ${p}%</li>`).join('');
+  body.innerHTML = `
+    <p>Cada sobre trae <b>${PACK_SIZE} cartas</b> al azar, con garantía de <b>al menos una rara o mejor</b>. Tienes <b>2 sobres gratis al día</b>; los extra cuestan <b>${PACK_PRICE} 💊</b>.</p>
+    <p><b>De dónde salen las cartas:</b> básicas + los mazos y expansiones que tengas desbloqueados + el banner vigente (<b>${PACK_BANNER.name.replace('🎏 ', '')}</b>, que cae aunque no tengas su set).</p>
+    <p><b>Rareza de cada carta:</b></p>
+    <ul class="pi-list">${rar}</ul>
+    <p><b>Grados especiales</b> (cada carta puede venir además en una versión rara, de menos a más valiosa: foil &lt; alterada &lt; dorada &lt; <b>DIAMOND</b>):</p>
+    <ul class="pi-list">${vars}</ul>
+    <p>Las <b>💎 DIAMOND</b> son el grado más raro del juego: marco de diamante, ilustración animada, partículas y visualización en <b>3D real</b> en el inspector. Las versiones repetidas conservan siempre la mejor conseguida.</p>`;
+  document.getElementById('packinfo-overlay').classList.remove('hidden');
+  if (typeof fitOverlays === 'function') fitOverlays();
 }
 
 /* ---------- pantalla de sobres ---------- */
@@ -185,7 +207,7 @@ function renderPacksScreen() {
   if (!bn) {
     bn = document.createElement('div');
     bn.id = 'pack-banner';
-    panel.insertBefore(bn, panel.querySelector('.packs-lore'));
+    panel.insertBefore(bn, document.getElementById('pack-area'));
   }
   bn.innerHTML = `<b>${PACK_BANNER.name}</b> — ${PACK_BANNER.desc}`;
 
