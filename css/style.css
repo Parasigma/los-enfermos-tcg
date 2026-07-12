@@ -1763,36 +1763,43 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   display: flex; flex-direction: column; align-items: center;
   z-index: 5;
 }
+/* tokens PEQUEÑOS, a escala del plano */
 .g-circ {
-  width: 42px; height: 42px;
+  width: 24px; height: 24px;
   border-radius: 50%;
   overflow: hidden;
-  border: 3px solid #d6c6a6;
+  border: 2px solid #d6c6a6;
   background: #203b35;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, .55);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, .55);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
 .g-circ img { width: 100%; height: 100%; object-fit: cover; }
-.g-temoji { font-size: 24px; }
-.g-npc .g-circ { width: 34px; height: 34px; border-color: #8fa5a0; cursor: default; }
+.g-temoji { font-size: 14px; }
+.g-npc .g-circ { width: 19px; height: 19px; border-color: #8fa5a0; cursor: default; }
 .g-tname {
-  margin-top: 2px;
-  font-size: 10px; font-weight: bold;
+  margin-top: 1px;
+  font-size: 8px; font-weight: bold;
   color: #fff;
   text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
   pointer-events: none;
 }
+/* pasitos al caminar */
+.g-token.andando .g-circ { animation: gPasitos .38s ease-in-out infinite; }
+@keyframes gPasitos {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
 /* bocadillo SIMS bajo el personaje */
 .g-bubble {
-  margin-top: 2px;
-  max-width: 150px;
-  padding: 3px 8px;
-  border-radius: 9px;
+  margin-top: 1px;
+  max-width: 112px;
+  padding: 2px 6px;
+  border-radius: 7px;
   background: rgba(8, 20, 17, .92);
   border: 1px solid rgba(214, 198, 166, .55);
   color: #e9dfc2;
-  font-size: 10px;
+  font-size: 8.5px;
   text-align: center;
   line-height: 1.25;
   opacity: 0;
