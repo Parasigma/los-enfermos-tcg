@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* sobres (pestaña dentro de la tienda; el propio sobre es el botón) */
   document.getElementById('tab-decks').addEventListener('click', () => shopShowTab('decks'));
   document.getElementById('tab-packs').addEventListener('click', () => shopShowTab('packs'));
+  document.getElementById('tab-backs').addEventListener('click', () => shopShowTab('backs'));
 
   /* jugar online */
   document.getElementById('btn-online').addEventListener('click', () => {
@@ -169,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* contenedores con el marco modular de piezas box_* */
   document.querySelectorAll('.menu-box').forEach(b => box9(b));
   box9(document.getElementById('shop-packs-panel'));
+  box9(document.getElementById('shop-backs-panel'));
 
   /* inspector de carta en grande (falso 3D) */
   initCardInspector();

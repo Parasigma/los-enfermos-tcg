@@ -167,15 +167,12 @@ const SHOP_ITEMS = [
     img: 'assets/ilustraciones/mario.png',
     name: 'Mazo: El Paciente Supremo',
     desc: 'MARIO SUPREMO como héroe jugable (poder: Mover los Hilos, roba ideas de la mano rival) y 12 cartas de control mental: motes que hunden, engaños entre esbirros y el CONTROL MENTAL definitivo.'
-  },
-  /* REVERSOS de carta (cosméticos): se equipan en la Ficha del Paciente */
-  {
-    cardback: 'dorado', emoji: '🂠', price: 1500,
-    img: 'assets/reverso_gold.png',
-    name: 'Reverso: Dorado',
-    desc: 'Reverso cosmético bañado en oro para TODOS tus dorsos (mano rival, robos y sobres). Se equipa en la Ficha del Paciente. Puro postureo de lujo.'
   }
 ];
+
+/* REVERSOS a la venta (pestaña propia de la tienda); los que no tienen
+   precio se desbloquean por logro */
+const CARDBACK_PRICES = { dorado: 1500 };
 
 const SHOP_SLOT_Y = [191, 422, 665];
 let shopPage = 0;
@@ -1154,7 +1151,6 @@ function renderShop() {
   const storySets = storyUnlockSets();
   const entries = [];
   for (const item of SHOP_ITEMS) {
-    if (item.cardback) { entries.push({ type: 'cardback', item }); continue; }  // reversos: siempre
     if (!storySets.has(item.set)) { entries.push({ type: 'buy', item }); continue; } // expansiones: siempre
     /* mazo de historia: comprable solo si venciste a su paciente y no lo tienes */
     if (Save.ownedSets.includes(item.set)) continue;
@@ -1188,31 +1184,7 @@ function renderShop() {
     b.className = 'painted-btn shop-buy';
     b.style.top = (y + 59) + 'px';
 
-    if (entry.type === 'cardback') {
-      /* reverso cosmético: se compra una vez y se equipa en la ficha */
-      const item = entry.item;
-      const owned = Save.cardBacksOwned.includes(item.cardback);
-      const canBuy = !owned && Save.coins >= item.price;
-      a.className = 'shop-slot-art' + (owned ? ' owned' : '');
-      a.innerHTML = `<img class="ss-back" src="${item.img}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'slot-emoji',textContent:'${item.emoji}'}))">`;
-      t.innerHTML = `
-        <div class="ss-name">${item.name} <span class="ss-cards">· cosmético</span></div>
-        <div class="ss-desc">${item.desc}</div>`;
-      b.classList.toggle('owned', owned);
-      b.disabled = owned || !canBuy;
-      b.textContent = owned ? '✔ COMPRADO' : item.price;
-      b.title = owned ? 'Ya tienes este reverso'
-        : canBuy ? `Comprar por ${item.price} 💊`
-        : `Necesitas ${item.price} 💊 (tienes ${Save.coins})`;
-      b.addEventListener('click', () => {
-        if (owned || Save.coins < item.price) return;
-        Save.coins -= item.price;
-        Save.cardBacksOwned.push(item.cardback);
-        persistSave();
-        Sfx.play('win');
-        renderShop();
-      });
-    } else if (entry.type === 'locked') {
+    if (entry.type === 'locked') {
       /* ficha misteriosa: no revela ni cuántos mazos ni cuáles */
       a.className = 'shop-slot-art locked';
       a.innerHTML = `<span class="slot-emoji">🔒</span>`;
@@ -1253,6 +1225,46 @@ function renderShop() {
     ui.appendChild(t);
     ui.appendChild(b);
   });
+}
+
+/* ---------- pestaña de REVERSOS de la tienda ---------- */
+
+function renderBacksShop() {
+  const list = document.getElementById('backs-list');
+  if (!list) return;
+  document.getElementById('shop-coins').textContent = Save.coins;
+  list.innerHTML = CARD_BACKS.map(b => {
+    const owned = b.owned();
+    const price = CARDBACK_PRICES[b.id];
+    const equipado = Save.cardBack === b.id && owned;
+    let action;
+    if (equipado) action = '<span class="bk-state eq">✔ EQUIPADO</span>';
+    else if (owned) action = `<button class="small-btn bk-equip" data-back="${b.id}">Equipar</button>`;
+    else if (price) action = `<button class="small-btn gold bk-buy" data-back="${b.id}" ${Save.coins < price ? 'disabled' : ''}>${price} 💊</button>`;
+    else action = `<span class="bk-state lock">🔒 ${b.hint || 'Logro secreto'}</span>`;
+    return `<div class="bk-item ${owned ? '' : 'locked'}">
+      <div class="cb-img" style="background-image:url('${b.img}')"></div>
+      <div class="bk-name">${b.name}</div>
+      ${action}
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.bk-buy').forEach(btn => btn.addEventListener('click', () => {
+    const id = btn.dataset.back;
+    const price = CARDBACK_PRICES[id];
+    if (!price || Save.coins < price || Save.cardBacksOwned.includes(id)) return;
+    Save.coins -= price;
+    Save.cardBacksOwned.push(id);
+    persistSave();
+    Sfx.play('win');
+    renderBacksShop();
+  }));
+  list.querySelectorAll('.bk-equip').forEach(btn => btn.addEventListener('click', () => {
+    Save.cardBack = btn.dataset.back;
+    persistSave();
+    applyCardBack();
+    Sfx.play('draw');
+    renderBacksShop();
+  }));
 }
 
 /* ---------- ajustes ---------- */

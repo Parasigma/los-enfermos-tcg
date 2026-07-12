@@ -1306,6 +1306,48 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 }
 #tab-decks { left: 838px; top: 122px; width: 96px; height: 44px; }
 #tab-packs { left: 934px; top: 122px; width: 104px; height: 44px; }
+/* pestaña de reversos: botón propio (no está pintada en el fondo) */
+#tab-backs {
+  position: absolute;
+  left: 1048px; top: 122px;
+  height: 44px;
+  padding: 0 16px;
+  font-size: 13px;
+  pointer-events: auto;
+}
+#tab-backs.active { filter: brightness(1.3) drop-shadow(0 0 8px rgba(255, 210, 87, .7)); }
+
+/* panel de reversos (misma zona que el de sobres) */
+#shop-backs-panel {
+  position: absolute;
+  left: 62px; right: 62px;
+  top: 158px; bottom: 34px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px;
+}
+#shop-backs-panel.hidden { display: none; }
+.backs-title { color: var(--gold); font-size: 24px; margin: 4px 0; position: relative; z-index: 3; }
+#backs-list {
+  display: flex;
+  gap: 34px;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative; z-index: 3;
+}
+.bk-item {
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+}
+.bk-item .cb-img { width: 128px; height: 184px; border-radius: 10px; }
+.bk-item.locked .cb-img { filter: grayscale(.85) brightness(.55); }
+.bk-name { font-size: 15px; font-weight: bold; color: var(--parchment); }
+.bk-state { font-size: 13px; }
+.bk-state.eq { color: #8dff9d; font-weight: bold; }
+.bk-state.lock { color: #a8c2bb; max-width: 150px; text-align: center; font-size: 12px; }
+#shop-backs-panel .hint { position: relative; z-index: 3; }
 .shop-tab:hover { box-shadow: 0 0 12px 3px rgba(255, 220, 120, .6); }
 .shop-tab.active {
   box-shadow: 0 0 14px 4px rgba(255, 210, 87, .85), inset 0 0 10px rgba(255, 210, 87, .35);

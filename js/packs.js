@@ -170,7 +170,7 @@ function showPackInfo() {
     <ul class="pi-list">${rar}</ul>
     <p><b>Grados especiales</b> (cada carta puede venir además en una versión rara, de menos a más valiosa: foil &lt; alterada &lt; dorada &lt; <b>DIAMOND</b>):</p>
     <ul class="pi-list">${vars}</ul>
-    <p>Las <b>💎 DIAMOND</b> son el grado más raro del juego: marco de diamante, ilustración animada, partículas y visualización en <b>3D real</b> en el inspector. Las versiones repetidas conservan siempre la mejor conseguida.</p>`;
+    <p>Si repites una versión especial, se conserva siempre la mejor conseguida.</p>`;
   document.getElementById('packinfo-overlay').classList.remove('hidden');
   if (typeof fitOverlays === 'function') fitOverlays();
 }
@@ -184,13 +184,18 @@ let cutState = null;
 /* cambia entre las pestañas de la tienda: mazos ↔ sobres */
 function shopShowTab(tab) {
   const packs = tab === 'packs';
-  document.getElementById('tab-decks').classList.toggle('active', !packs);
+  const backs = tab === 'backs';
+  const decks = !packs && !backs;
+  document.getElementById('tab-decks').classList.toggle('active', decks);
   document.getElementById('tab-packs').classList.toggle('active', packs);
+  document.getElementById('tab-backs').classList.toggle('active', backs);
   document.getElementById('shop-packs-panel').classList.toggle('hidden', !packs);
-  document.getElementById('shop-art').style.display = packs ? 'none' : '';
-  document.getElementById('shop-ui').style.display = packs ? 'none' : '';
-  document.getElementById('shop-pager').style.visibility = packs ? 'hidden' : '';
+  document.getElementById('shop-backs-panel').classList.toggle('hidden', !backs);
+  document.getElementById('shop-art').style.display = decks ? '' : 'none';
+  document.getElementById('shop-ui').style.display = decks ? '' : 'none';
+  document.getElementById('shop-pager').style.visibility = decks ? '' : 'hidden';
   if (packs) renderPacksScreen();
+  if (backs) renderBacksShop();
 }
 
 function renderPacksScreen() {
