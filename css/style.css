@@ -1351,6 +1351,7 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 .bk-state { font-size: 13px; }
 .bk-state.eq { color: #8dff9d; font-weight: bold; }
 .bk-state.lock { color: #a8c2bb; max-width: 150px; text-align: center; font-size: 12px; }
+.bk-hint { color: #8fa5a0; max-width: 160px; text-align: center; font-size: 11px; font-style: italic; line-height: 1.3; }
 #shop-backs-panel .hint { position: relative; z-index: 3; }
 .shop-tab:hover { box-shadow: 0 0 12px 3px rgba(255, 220, 120, .6); }
 .shop-tab.active {

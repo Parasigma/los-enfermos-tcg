@@ -419,13 +419,17 @@ function initCronica() {
    la variable CSS --card-back. Para añadir reversos nuevos: entrada
    aquí (y si se desbloquea por logro, su condición en owned()). */
 /* OJO: los reversos dorado y diamante NO son equipables — son exclusivos
-   de las cartas DORADAS/DIAMOND en el revelado de sobres. */
+   de las cartas DORADAS/DIAMOND en el revelado de sobres.
+   Los de logro NO revelan cuál es (los logros son ocultos): al completar
+   su logro se desbloquea la COMPRA por un precio simbólico. */
 const CARD_BACKS = [
   { id: 'clasico', name: 'Clásico del Manicomio', img: 'assets/reverso.png', owned: () => true },
   { id: 'corrupto', name: 'Reverso Corrupto', img: 'assets/reverso_corrupto.png',
-    owned: () => Save.cardBacksOwned.includes('corrupto'), hint: 'Logro: completa el capítulo 1' },
+    logro: 'capitulo1',
+    owned: () => Save.cardBacksOwned.includes('corrupto'), hint: 'Se consigue con logro' },
   { id: 'cyborg', name: 'Reverso Cyborg', img: 'assets/reverso_cyborg.png',
-    owned: () => Save.cardBacksOwned.includes('cyborg'), hint: 'Logro: vence a un paciente sin perder ni un punto de vida' }
+    logro: 'intocable',
+    owned: () => Save.cardBacksOwned.includes('cyborg'), hint: 'Se consigue con logro' }
 ];
 function applyCardBack() {
   const cb = CARD_BACKS.find(b => b.id === Save.cardBack && b.owned()) || CARD_BACKS[0];

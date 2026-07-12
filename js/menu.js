@@ -170,10 +170,8 @@ const SHOP_ITEMS = [
   }
 ];
 
-/* REVERSOS a la venta (pestaña propia de la tienda); vacío por ahora:
-   los reversos actuales se desbloquean por LOGRO (dorado/diamante son
-   exclusivos de las cartas de ese grado, no se compran) */
-const CARDBACK_PRICES = {};
+/* precio de cada reverso una vez DESBLOQUEADO por su logro (simbólico) */
+const CARDBACK_PRICES = { corrupto: 100, cyborg: 100 };
 
 const SHOP_SLOT_Y = [191, 422, 665];
 let shopPage = 0;
@@ -1243,11 +1241,17 @@ function renderBacksShop() {
     const owned = b.owned();
     const price = CARDBACK_PRICES[b.id];
     const equipado = Save.cardBack === b.id && owned;
+    /* los logros son OCULTOS: aquí nunca se revela cuál es */
+    const logroHecho = !b.logro || Save.logros.includes(b.logro);
     let action;
     if (equipado) action = '<span class="bk-state eq">✔ EQUIPADO</span>';
     else if (owned) action = `<button class="small-btn bk-equip" data-back="${b.id}">Equipar</button>`;
+    else if (b.logro && !logroHecho) {
+      action = `<span class="bk-state lock">🔒 Se consigue con logro</span>
+        <span class="bk-hint">Logro Oculto: completa el logro para desbloquear el reverso</span>`;
+    }
     else if (price) action = `<button class="small-btn gold bk-buy" data-back="${b.id}" ${Save.coins < price ? 'disabled' : ''}>${price} 💊</button>`;
-    else action = `<span class="bk-state lock">🔒 ${b.hint || 'Logro secreto'}</span>`;
+    else action = '<span class="bk-state lock">🔒 Bloqueado</span>';
     return `<div class="bk-item ${owned ? '' : 'locked'}">
       <div class="cb-img" style="background-image:url('${b.img}')"></div>
       <div class="bk-name">${b.name}</div>
