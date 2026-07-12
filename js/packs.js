@@ -61,13 +61,40 @@ function cardVariant(id) {
 
 /* ---------- generación del sobre ---------- */
 
+/* =========================================================
+   BANNER DE SOBRES — pool destacado que va ROTANDO.
+   Es independiente de mazos y expansiones: sus cartas caen en
+   sobres AUNQUE no tengas su set (es la novedad del momento).
+   Para estrenar un banner nuevo: cambia id/nombre/desc/cards.
+   ========================================================= */
+const PACK_BANNER = {
+  id: 'lanzamiento',
+  name: '🎏 Recuerdos del Parque',
+  desc: 'Banner de lanzamiento: la vieja época del parque, destacada en los sobres.',
+  cards: ['litrona', 'vecinoCabreado', 'pandilla', 'cocheEmpresa', 'moteDefinitivo']
+};
+
+/* sets cuyas cartas pueden salir en sobres AHORA: básicas + mazos y
+   expansiones DESBLOQUEADOS (comprados, o con su paciente ya vencido) */
+function unlockedSetKeys() {
+  return Object.keys(SETS).filter(k =>
+    SETS[k].kind === 'basica' ||
+    Save.ownedSets.includes(k) ||
+    (typeof deckPurchaseUnlocked === 'function' && deckPurchaseUnlocked(k)));
+}
+
 function packPoolByRarity() {
+  const ids = new Set();
+  for (const key of unlockedSetKeys()) {
+    for (const id of SETS[key].cards) ids.add(id);
+  }
+  for (const id of (PACK_BANNER.cards || [])) {
+    if (CARDS[id]) ids.add(id);
+  }
   const pool = {};
-  for (const key of Object.keys(SETS)) {
-    for (const id of SETS[key].cards) {
-      const r = CARDS[id].rarity;
-      (pool[r] = pool[r] || []).push(id);
-    }
+  for (const id of ids) {
+    const r = CARDS[id].rarity;
+    (pool[r] = pool[r] || []).push(id);
   }
   return pool;
 }
@@ -152,6 +179,15 @@ function renderPacksScreen() {
   panel.classList.remove('cutting');
   const area = document.getElementById('pack-area');
   area.innerHTML = '';
+
+  /* banner vigente: se muestra qué pool destacado está activo */
+  let bn = document.getElementById('pack-banner');
+  if (!bn) {
+    bn = document.createElement('div');
+    bn.id = 'pack-banner';
+    panel.insertBefore(bn, panel.querySelector('.packs-lore'));
+  }
+  bn.innerHTML = `<b>${PACK_BANNER.name}</b> — ${PACK_BANNER.desc}`;
 
   const canFree = PACKS_TEST_MODE || Save.packsFreeLeft > 0;
   const canPaid = Save.coins >= PACK_PRICE;

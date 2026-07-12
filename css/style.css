@@ -1556,6 +1556,19 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 #ci-card[data-variant="diamond"] #ci-holo { filter: brightness(.9) contrast(1.55) saturate(1.5) hue-rotate(-10deg); }
 #ci-card.holo-on[data-variant="diamond"] #ci-sparkle { opacity: .34; }
 
+/* banner vigente de los sobres (pool destacado rotatorio) */
+#pack-banner {
+  margin: 4px auto 8px;
+  padding: 7px 14px;
+  max-width: 520px;
+  background: linear-gradient(90deg, rgba(255, 210, 87, .12), rgba(255, 210, 87, .28), rgba(255, 210, 87, .12));
+  border: 1px solid rgba(255, 210, 87, .45);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--parchment);
+}
+#pack-banner b { color: var(--gold); }
+
 /* ---------------- ENTORNO (capítulo 2) ---------------- */
 
 /* placa del entorno activo, arriba-centro del tablero */
