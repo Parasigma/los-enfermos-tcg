@@ -1642,6 +1642,16 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 .trade-mode label { cursor: pointer; }
 #trade-result { display: flex; flex-direction: column; gap: 8px; }
 #trade-result .lore { font-size: 14.5px; }
+/* envíos en depósito (esperando que el amigo acepte) */
+#trade-pending { text-align: left; margin-top: 4px; }
+#trade-pending h3 { color: var(--gold); font-size: 16px; margin: 6px 0 4px; }
+.tp-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 8px;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(120, 150, 140, .18);
+}
+.tp-row .small-btn { padding: 4px 12px; font-size: 12px; margin-left: auto; }
 
 /* ---------------- FICHA DEL PACIENTE (perfil) ---------------- */
 

@@ -27,7 +27,8 @@ const Save = {
   story: { defeated: [], revealed: [] }, // modo historia: enemigos vencidos / revelados
   /* ficha del paciente: historial de batallas y ELO interno */
   stats: { games: 0, wins: 0, losses: 0, streak: 0, bestStreak: 0, elo: 1000, log: [] },
-  tradeOut: [],                 // intercambios ofrecidos pendientes de respuesta
+  tradeOut: [],                 // envíos en depósito pendientes (regalos/intercambios)
+  cardMinus: {},                // cartas ENVIADAS a amigos: descuentan de tus copias
   settings: { sound: true, fastAI: false, showLog: true }
 };
 
@@ -196,6 +197,7 @@ function loadSave() {
       if (s.settings) Object.assign(Save.settings, s.settings);
       if (s.stats && typeof s.stats === 'object') Object.assign(Save.stats, s.stats);
       if (Array.isArray(s.tradeOut)) Save.tradeOut = s.tradeOut;
+      if (s.cardMinus && typeof s.cardMinus === 'object') Save.cardMinus = s.cardMinus;
 
       /* migración de guardados antiguos (mazo único o mazo por héroe) */
       if (!Array.isArray(s.customDecks)) {
@@ -288,10 +290,13 @@ function setOwnedCard(id) {
 }
 
 /* copias utilizables en mazos: las de los sets dan el máximo;
-   las de sobres, tantas como hayas conseguido (hasta el máximo) */
+   las de sobres, tantas como hayas conseguido (hasta el máximo).
+   Las cartas ENVIADAS a amigos (cardMinus) se descuentan. */
 function availableCopies(id) {
-  if (setOwnedCard(id)) return maxCopies(id);
-  return Math.min(maxCopies(id), (Save.cardCollection && Save.cardCollection[id]) || 0);
+  const base = setOwnedCard(id) ? maxCopies(id)
+    : Math.min(maxCopies(id), (Save.cardCollection && Save.cardCollection[id]) || 0);
+  const minus = (Save.cardMinus && Save.cardMinus[id]) || 0;
+  return Math.max(0, base - minus);
 }
 
 /* cartas coleccionables que posee el jugador (sets + sobres) */
@@ -308,18 +313,49 @@ function collectionIds() {
 }
 
 /* =========================================================
-   COMPARTIR CARTAS — por código (sin servidor, funciona en
-   web, APK y Electron: el código viaja por WhatsApp).
-   - REGALO: le mandas una carta; él la acepta o la rechaza.
-   - INTERCAMBIO: le ofreces una carta; para aceptarla debe
-     responder con una suya del MISMO VALOR (rareza) y te
-     manda el código de vuelta. Nadie pierde cartas: se
-     comparten COPIAS.
-   - Requisito para RECIBIR: tener desbloqueado el mazo de la
-     carta (vencido su paciente en la historia o comprado).
+   COMPARTIR CARTAS — por código (sin servidor: el código
+   viaja por WhatsApp; funciona en web, APK y Electron).
+   INTERCAMBIO DE VERDAD: la carta que envías SALE de tu
+   colección (queda «en depósito») y la de tu amigo entra.
+   Nadie te puede robar: tú eliges qué mandas y qué aceptas.
+   - REGALO: la carta sale de tu colección al generar el
+     código; tu amigo la acepta (o caduca y la recuperas).
+   - INTERCAMBIO: ofreces una carta (sale a depósito); tu
+     amigo acepta respondiendo con una suya del MISMO VALOR
+     (rareza) — la suya sale de su colección y la tuya entra
+     en la de él; con su código de respuesta recibes la suya.
+   - CADUCIDAD: los códigos valen 6 HORAS. Si nadie acepta a
+     tiempo, el envío se cancela y tu carta vuelve sola.
+   - Requisito para RECIBIR: mazo de la carta desbloqueado
+     (paciente vencido en la historia o set comprado).
    ========================================================= */
 
-const TRADE_TAG = 'ENFCARTA1.';
+const TRADE_TAG = 'ENFCARTA2.';
+const TRADE_EXPIRY_MS = 6 * 60 * 60 * 1000;   // 6 horas
+
+function tradeExpired(t) { return Date.now() - t > TRADE_EXPIRY_MS; }
+
+/* una carta SALE de tu colección (enviada a un amigo) */
+function removeCardCopy(id) {
+  const col = (Save.cardCollection && Save.cardCollection[id]) || 0;
+  if (col > 0) Save.cardCollection[id] = col - 1;
+  else {
+    Save.cardMinus = Save.cardMinus || {};
+    Save.cardMinus[id] = (Save.cardMinus[id] || 0) + 1;
+  }
+  persistSave();
+}
+
+/* caducidad: los INTERCAMBIOS vencidos se cancelan solos y la carta
+   vuelve; los REGALOS vencidos se recuperan a mano (con aviso) */
+function checkTradeExpiry() {
+  const vencidos = Save.tradeOut.filter(x => x.kind === 'offer' && tradeExpired(x.t));
+  if (!vencidos.length) return [];
+  Save.tradeOut = Save.tradeOut.filter(x => !vencidos.includes(x));
+  for (const v of vencidos) addSharedCard(v.c);
+  persistSave();
+  return vencidos.map(v => CARDS[v.c].name);
+}
 
 function tradeEncode(obj) {
   return TRADE_TAG + btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
@@ -347,40 +383,77 @@ function canReceiveCard(id) {
 }
 
 function addSharedCard(id) {
-  Save.cardCollection[id] = (Save.cardCollection[id] || 0) + 1;
+  /* primero cancela deudas de envío; después suma copias */
+  const minus = (Save.cardMinus && Save.cardMinus[id]) || 0;
+  if (minus > 0) Save.cardMinus[id] = minus - 1;
+  else Save.cardCollection[id] = (Save.cardCollection[id] || 0) + 1;
   persistSave();
 }
 
-/* cartas propias que se pueden compartir (sin fichas) */
+/* cartas propias que se pueden ENVIAR: sin fichas y con copias libres */
 function tradeableIds() {
-  return collectionIds().filter(id => !CARDS[id].token);
+  return collectionIds().filter(id => !CARDS[id].token && availableCopies(id) > 0);
 }
 
 function renderTradeScreen() {
   const sel = document.getElementById('trade-card');
   if (!sel) return;
+  /* intercambios caducados: se cancelan y la carta vuelve sola */
+  const vueltas = checkTradeExpiry();
   sel.innerHTML = tradeableIds().map(id =>
     `<option value="${id}">${CARDS[id].name} · ${CARDS[id].rarity}</option>`).join('');
   document.getElementById('trade-out').value = '';
-  document.getElementById('trade-result').innerHTML = '';
   document.getElementById('trade-in').value = '';
+  const box = document.getElementById('trade-result');
+  box.innerHTML = vueltas.length
+    ? `<p class="lore" style="margin:8px 0">⏳ Intercambio caducado: <b>${vueltas.join('</b>, <b>')}</b> ha vuelto a tu colección.</p>`
+    : '';
+  renderTradePending();
+}
+
+/* envíos en depósito: qué cartas tuyas están fuera esperando respuesta */
+function renderTradePending() {
+  let pend = document.getElementById('trade-pending');
+  if (!pend) return;
+  if (!Save.tradeOut.length) { pend.innerHTML = ''; return; }
+  pend.innerHTML = '<h3>📦 En depósito</h3>' + Save.tradeOut.map((x, i) => {
+    const mins = Math.max(0, Math.round((x.t + TRADE_EXPIRY_MS - Date.now()) / 60000));
+    const caducado = tradeExpired(x.t);
+    const tipo = x.kind === 'gift' ? '🎁' : '🔁';
+    return `<div class="tp-row">${tipo} <b>${CARDS[x.c].name}</b> · ${caducado ? 'CADUCADO' : `caduca en ${Math.floor(mins / 60)}h ${mins % 60}m`}
+      ${x.kind === 'gift' && caducado ? `<button class="small-btn tp-recover" data-i="${i}">Recuperar</button>` : ''}</div>`;
+  }).join('');
+  pend.querySelectorAll('.tp-recover').forEach(b => b.addEventListener('click', () => {
+    const x = Save.tradeOut[+b.dataset.i];
+    if (!x) return;
+    if (!confirm(`¿Recuperar «${CARDS[x.c].name}»? OJO: si tu amigo ya aceptó el regalo, recuperarla sería duplicarla (y eso es trampa).`)) return;
+    Save.tradeOut = Save.tradeOut.filter(y => y !== x);
+    addSharedCard(x.c);
+    persistSave();
+    renderTradeScreen();
+  }));
 }
 
 function tradeGenerate() {
   const id = document.getElementById('trade-card').value;
   const kind = document.querySelector('input[name="trade-kind"]:checked').value;
   if (!id || !CARDS[id] || !Save.profile) return;
+  if (availableCopies(id) <= 0) return;
   const obj = {
     k: kind === 'offer' ? 'offer' : 'gift',
     c: id, r: CARDS[id].rarity,
     f: { i: Save.profile.id, n: Save.profile.name }, t: Date.now()
   };
-  if (obj.k === 'offer') {
-    Save.tradeOut.unshift({ c: id, t: obj.t });
-    if (Save.tradeOut.length > 10) Save.tradeOut.length = 10;
-    persistSave();
+  /* la carta SALE de tu colección y queda en depósito */
+  removeCardCopy(id);
+  Save.tradeOut.unshift({ c: id, t: obj.t, kind: obj.k });
+  if (Save.tradeOut.length > 10) {
+    const sobrante = Save.tradeOut.pop();
+    addSharedCard(sobrante.c);   // no se pierde: vuelve si se desborda la lista
   }
+  persistSave();
   document.getElementById('trade-out').value = tradeEncode(obj);
+  renderTradePending();
 }
 
 function tradeCopy() {
@@ -402,6 +475,7 @@ function tradeRead() {
   const de = obj.f ? ` de <b>${obj.f.n}</b> (${obj.f.i})` : '';
 
   if (obj.k === 'gift') {
+    if (tradeExpired(obj.t)) return note('⏳ Este regalo ha CADUCADO (los códigos valen 6 horas). Pídele otro.');
     const chk = canReceiveCard(obj.c);
     if (!chk.ok) return note('🔒 ' + chk.why);
     note(`🎁 Regalo${de}: <b>${card.name}</b> (${card.rarity}).`);
@@ -410,51 +484,57 @@ function tradeRead() {
     b1.onclick = () => { addSharedCard(obj.c); note(`🎉 <b>${card.name}</b> añadida a tu colección.`); Sfx.play('win'); };
     const b2 = document.createElement('button');
     b2.className = 'small-btn danger'; b2.textContent = '✖ Rechazar';
-    b2.onclick = () => note('Regalo rechazado. Nadie pierde nada.');
+    b2.onclick = () => note('Regalo rechazado: cuando caduque, la carta volverá a tu amigo.');
     box.append(b1, b2);
     return;
   }
 
   if (obj.k === 'offer') {
+    if (tradeExpired(obj.t)) return note('⏳ Esta oferta ha CADUCADO (los códigos valen 6 horas): el intercambio queda cancelado y su carta vuelve a tu amigo.');
     const chk = canReceiveCard(obj.c);
     if (!chk.ok) return note('🔒 ' + chk.why);
     const mias = tradeableIds().filter(id => CARDS[id].rarity === obj.r && id !== obj.c);
-    if (!mias.length) return note(`⚖️ Te ofrecen <b>${card.name}</b> (${card.rarity}), pero no tienes ninguna carta de ese valor para intercambiar.`);
-    note(`🔁 Intercambio${de}: te ofrece <b>${card.name}</b> (${card.rarity}). Elige una carta tuya del MISMO valor para responder:`);
+    if (!mias.length) return note(`⚖️ Te ofrecen <b>${card.name}</b> (${card.rarity}), pero no tienes ninguna carta libre de ese valor para intercambiar.`);
+    note(`🔁 Intercambio${de}: te ofrece <b>${card.name}</b> (${card.rarity}). Elige la carta tuya del MISMO valor que le darás a cambio (SALDRÁ de tu colección):`);
     const sel = document.createElement('select');
     sel.innerHTML = mias.map(id => `<option value="${id}">${CARDS[id].name} · ${CARDS[id].rarity}</option>`).join('');
     const b1 = document.createElement('button');
     b1.className = 'small-btn'; b1.textContent = '✅ Aceptar e intercambiar';
     b1.onclick = () => {
-      addSharedCard(obj.c);
-      const ans = { k: 'ans', c: sel.value, o: obj.c, r: obj.r, f: { i: Save.profile.id, n: Save.profile.name }, t: Date.now() };
+      const mia = sel.value;
+      if (availableCopies(mia) <= 0) return note('❌ Ya no tienes copias libres de esa carta.');
+      removeCardCopy(mia);          // tu carta SALE hacia tu amigo
+      addSharedCard(obj.c);         // la suya ENTRA en tu colección
+      const ans = { k: 'ans', c: mia, o: obj.c, r: obj.r, f: { i: Save.profile.id, n: Save.profile.name }, t: Date.now() };
       document.getElementById('trade-out').value = tradeEncode(ans);
-      note(`🎉 <b>${card.name}</b> es tuya. Envíale el código de respuesta (arriba en «Crear envío») para que reciba tu <b>${CARDS[sel.value].name}</b>.`);
+      note(`🎉 <b>${card.name}</b> es tuya y tu <b>${CARDS[mia].name}</b> ha salido hacia tu amigo. Envíale el código de respuesta (arriba) para que la reciba.`);
       Sfx.play('win');
+      renderTradePending();
     };
     const b2 = document.createElement('button');
     b2.className = 'small-btn danger'; b2.textContent = '✖ Rechazar';
-    b2.onclick = () => note('Intercambio rechazado. Nadie pierde nada.');
+    b2.onclick = () => note('Intercambio rechazado: cuando caduque, la carta volverá a tu amigo.');
     box.append(sel, b1, b2);
     return;
   }
 
-  /* respuesta a un intercambio que TÚ ofreciste */
+  /* respuesta a un intercambio que TÚ ofreciste: recibes su carta */
   if (obj.k === 'ans') {
-    const mine = Save.tradeOut.find(x => x.c === obj.o);
-    if (!mine) return note('🤔 Esa respuesta no corresponde a ningún intercambio tuyo pendiente.');
+    const mine = Save.tradeOut.find(x => x.c === obj.o && x.kind === 'offer');
+    if (!mine) return note('🤔 Esa respuesta no corresponde a ningún intercambio tuyo pendiente (¿caducó y tu carta ya volvió?).');
     if (CARDS[obj.c].rarity !== CARDS[obj.o].rarity) return note('⚖️ Ese intercambio no es del mismo valor. Código rechazado.');
     const chk = canReceiveCard(obj.c);
     if (!chk.ok) return note('🔒 ' + chk.why);
-    note(`🔁 ${obj.f ? `<b>${obj.f.n}</b>` : 'Tu amigo'} ha aceptado tu intercambio y te envía <b>${card.name}</b> (${card.rarity}).`);
+    note(`🔁 ${obj.f ? `<b>${obj.f.n}</b>` : 'Tu amigo'} ha aceptado: tu <b>${CARDS[obj.o].name}</b> ya es suya y te envía <b>${card.name}</b> (${card.rarity}).`);
     const b1 = document.createElement('button');
     b1.className = 'small-btn'; b1.textContent = '✅ Completar intercambio';
     b1.onclick = () => {
-      addSharedCard(obj.c);
-      Save.tradeOut = Save.tradeOut.filter(x => x !== mine);
+      addSharedCard(obj.c);                                // su carta entra
+      Save.tradeOut = Save.tradeOut.filter(x => x !== mine); // la tuya ya no vuelve
       persistSave();
       note(`🎉 <b>${card.name}</b> añadida a tu colección. Intercambio completado.`);
       Sfx.play('win');
+      renderTradePending();
     };
     box.append(b1);
   }
