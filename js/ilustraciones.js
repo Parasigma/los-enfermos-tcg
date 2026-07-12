@@ -119,5 +119,7 @@ const ILUSTRACIONES = {
   hero_marioHero:   'assets/ilustraciones/mario.png',     // Mario Matas, el Cabecilla
   hero_jorgeHero:   'assets/ilustraciones/monzo.png',     // Jorge Monzo, el Ventosero
   hero_victorHero:  'assets/ilustraciones/victor.png',    // Víctor Lamas, el Motero
-  hero_rabascoHero: 'assets/ilustraciones/rabasco.png'    // Rabasco, el Cornudo
+  hero_rabascoHero: 'assets/ilustraciones/rabasco.png',   // Rabasco, el Picado Maestro
+  hero_paquitoHero: 'assets/ilustraciones/paquito.png',   // Paquito Serna, la Bestia
+  hero_marioSupremo: 'assets/ilustraciones/mario.png'     // Mario, el Paciente Supremo (boss)
 };
