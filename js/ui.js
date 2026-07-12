@@ -104,13 +104,72 @@ const Music = {
 /* ---------------- EFECTOS ENCOLADOS DESDE EL MOTOR ---------------- */
 const fxQueue = [];
 Hooks.fx = (type, data) => fxQueue.push({ type, data });
-Hooks.log = msg => {
+Hooks.log = (msg, meta) => {
   const el = document.createElement('div');
   el.className = 'log-line';
   el.textContent = msg;
+  /* pasos con protagonistas: al pasar el ratón se ve QUIÉN hizo QUÉ,
+     con las cartas implicadas en grande (crónica visual) */
+  if (meta && (meta.a || meta.b)) {
+    el.classList.add('has-detail');
+    el.addEventListener('mouseenter', () => showLogTip(meta, msg, el));
+    el.addEventListener('mouseleave', hideLogTip);
+  }
   $('#log').appendChild(el);
   $('#log').scrollTop = $('#log').scrollHeight;
 };
+
+/* ---------- CRÓNICA VISUAL: detalle de un paso al pasar el ratón ---------- */
+
+let logTipEl = null;
+
+function logTipRefHTML(ref) {
+  if (!ref) return '';
+  if (ref.c && CARDS[ref.c]) {
+    const fake = { def: CARDS[ref.c], id: ref.c, costMod: 0 };
+    return `<div class="lt-card"><div class="card t-${fake.def.type} ${fake.def.clazz} r-${fake.def.rarity}">${cardInnerHTML(fake)}</div></div>`;
+  }
+  if (ref.h && HEROES[ref.h]) {
+    const h = HEROES[ref.h];
+    const art = (typeof ILUSTRACIONES !== 'undefined' && ILUSTRACIONES['hero_' + ref.h]) || null;
+    return `<div class="lt-hero">
+      ${art ? `<img class="lt-hart" src="${art}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'lt-portrait',textContent:'${h.portrait}'}))">`
+            : `<span class="lt-portrait">${h.portrait}</span>`}
+      <span class="lt-hname">${h.name.split(' «')[0]}</span>
+    </div>`;
+  }
+  return '';
+}
+
+const LOGTIP_VERBS = {
+  attack: '⚔️', power: '✨', play: '🎯', death: '💀', discard: '🗑️',
+  stench: '💨', control: '🎩', env: '🌐', return: '↩️', encane: '🔥'
+};
+
+function showLogTip(meta, msg, line) {
+  hideLogTip();
+  const tip = document.createElement('div');
+  tip.id = 'log-tip';
+  tip.innerHTML = `
+    <div class="lt-cards">
+      ${logTipRefHTML(meta.a)}
+      ${meta.b ? `<span class="lt-verb">${LOGTIP_VERBS[meta.k] || '➡️'}</span>${logTipRefHTML(meta.b)}` : ''}
+    </div>
+    <div class="lt-text">${msg}</div>`;
+  $('#stage').appendChild(tip);
+  /* a la derecha de la crónica, a la altura del paso (px de diseño) */
+  const sr = $('#stage').getBoundingClientRect();
+  const scale = sr.width ? sr.width / 1672 : 1;
+  const lr = line.getBoundingClientRect();
+  const y = (lr.top - sr.top) / scale;
+  tip.style.left = '232px';
+  tip.style.top = Math.max(8, Math.min(941 - tip.offsetHeight - 8, y - tip.offsetHeight / 2)) + 'px';
+  logTipEl = tip;
+}
+
+function hideLogTip() {
+  if (logTipEl) { logTipEl.remove(); logTipEl = null; }
+}
 Hooks.gameOver = winner => {
   setTimeout(() => showEnd(winner), 900);
 };

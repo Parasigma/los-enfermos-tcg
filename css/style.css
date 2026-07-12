@@ -692,11 +692,11 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   width: 216px; height: 623px;
   background: url('../assets/cronica.png') 0 0 / 100% 100% no-repeat;
   z-index: 4;
-  transition: transform .38s ease, opacity .38s ease;
+  /* puerta corredera: se desliza suave hacia el borde izquierdo */
+  transition: transform .65s cubic-bezier(.45, 0, .18, 1);
 }
 #cronica-layer.oculta {
-  transform: translateX(-115%);
-  opacity: 0;
+  transform: translateX(-112%);
   pointer-events: none;
 }
 /* pestaña para volver a sacar la crónica (imagen del usuario si existe;
@@ -740,6 +740,36 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 }
 #log.hidden { display: none; }
 .log-line { margin-bottom: 3px; border-bottom: 1px dotted rgba(0, 0, 0, .18); padding-bottom: 2px; }
+/* pasos con detalle visual: resalte al pasar el ratón */
+.log-line.has-detail { cursor: help; border-radius: 4px; }
+.log-line.has-detail:hover { background: rgba(184, 134, 11, .22); }
+
+/* panel de detalle de la crónica: las cartas del paso, en grande */
+#log-tip {
+  position: absolute;
+  width: 252px;
+  background: rgba(8, 20, 17, .95);
+  border: 2px solid var(--gold-dark);
+  border-radius: 14px;
+  padding: 12px 10px 10px;
+  z-index: 50;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, .65));
+}
+.lt-cards { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.lt-card { width: 88px; height: 124px; flex-shrink: 0; }
+.lt-card .card { transform: scale(.61); transform-origin: top left; }
+.lt-verb { font-size: 24px; flex-shrink: 0; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .6)); }
+.lt-hero { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 88px; }
+.lt-hart {
+  width: 72px; height: 72px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid var(--gold-dark);
+}
+.lt-portrait { font-size: 44px; }
+.lt-hname { font-size: 11.5px; color: var(--parchment); text-align: center; }
+.lt-text { margin-top: 9px; font-size: 12.5px; color: #e9dfc2; text-align: center; line-height: 1.35; }
 #log::-webkit-scrollbar { width: 4px; }
 #log::-webkit-scrollbar-thumb { background: #8a6a3a; border-radius: 2px; }
 

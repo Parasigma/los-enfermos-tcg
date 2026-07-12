@@ -12,9 +12,11 @@ const Hooks = {
   gameOver: null  // (winner) -> pantalla final
 };
 
-function log(g, msg) {
+/* log(g, msg, meta): meta opcional describe QUIÉN hace QUÉ para la
+   crónica visual — { k: tipo, a: {c:cardId}|{h:heroId}, b: ídem } */
+function log(g, msg, meta) {
   g.log.push(msg);
-  if (Hooks.log) Hooks.log(msg);
+  if (Hooks.log) Hooks.log(msg, meta);
 }
 function fx(type, data) {
   if (Hooks.fx) Hooks.fx(type, data);
@@ -135,7 +137,7 @@ function discardRandom(g, p, n) {
     const c = p.hand.splice(j, 1)[0];
     p.discardedThisTurn++;
     p.discardsTotal++;
-    log(g, `🗑️ ${heroName(p)} descarta «${c.def.name}».`);
+    log(g, `🗑️ ${heroName(p)} descarta «${c.def.name}».`, { k: 'discard', a: { c: c.id } });
     fx('discard', { card: c, owner: p.idx });
     /* ENCANE: la carta se activa al ser descartada */
     if (c.def.encane) {
@@ -168,7 +170,7 @@ function returnToHand(g, m, costDelta = 0) {
   const c = makeCardInstance(m.id);
   c.costMod += costDelta;
   p.hand.push(c);
-  log(g, `↩️ ${m.def.name} vuelve a la mano${costDelta ? ` (coste ${costDelta > 0 ? '+' : ''}${costDelta})` : ''}.`);
+  log(g, `↩️ ${m.def.name} vuelve a la mano${costDelta ? ` (coste ${costDelta > 0 ? '+' : ''}${costDelta})` : ''}.`, { k: 'return', a: { c: m.id } });
   if (m.def.onReturn) m.def.onReturn(g, p, c);
   return true;
 }
@@ -223,7 +225,7 @@ function checkDeaths(g) {
         const i = p.board.indexOf(m);
         if (i >= 0) p.board.splice(i, 1);
         fx('death', { minion: m, owner: p.idx });
-        log(g, `💀 Muere ${m.def.name}.`);
+        log(g, `💀 Muere ${m.def.name}.`, { k: 'death', a: { c: m.id } });
         if (m.def.deathrattle) m.def.deathrattle(g, p, m);
         if (m.mochila) {
           log(g, `🎒 ¡El pedo de mochila de ${m.def.name} estalla!`);
@@ -240,7 +242,7 @@ function checkDeaths(g) {
 function applyStench(g, m) {
   if (!m || m.isHero || m.dead || m.stench) return;
   m.stench = true;
-  log(g, `💨 ${m.def.name} queda impregnado de Olor a Peo.`);
+  log(g, `💨 ${m.def.name} queda impregnado de Olor a Peo.`, { k: 'stench', a: { c: m.id } });
   fx('stench', { minion: m });
 }
 
@@ -263,7 +265,7 @@ function takeControl(g, p, m) {
   m.sick = true;
   m.attacksThisTurn = 0;
   p.board.push(m);
-  log(g, `🎩 ${m.def.name} cambia de bando. «Ha sido cosa de Fiti», murmura.`);
+  log(g, `🎩 ${m.def.name} cambia de bando. «Ha sido cosa de Fiti», murmura.`, { k: 'control', a: { c: m.id } });
   fx('summon', { minion: m, owner: p.idx });
   return true;
 }
@@ -327,7 +329,8 @@ function playCard(g, p, uid, target) {
   p.hand.splice(i, 1);
   const combo = p.cardsPlayedThisTurn > 0;
   p.cardsPlayedThisTurn++;
-  log(g, `🎴 ${heroName(p)} juega «${c.def.name}».`);
+  log(g, `🎴 ${heroName(p)} juega «${c.def.name}».`,
+    { k: 'play', a: { c: c.id }, b: target ? (target.isHero ? { h: target.def.id } : { c: target.id }) : undefined });
   fx('play', { card: c, owner: p.idx });
 
   if (c.def.type === 'minion') {
@@ -364,7 +367,7 @@ function playCard(g, p, uid, target) {
 function setEnvironment(g, p, def) {
   if (g.env && g.env.def.envEnd) g.env.def.envEnd(g);
   g.env = { def, owner: p.idx, turnsLeft: def.duracion || 3 };
-  log(g, `🌐 ${heroName(p)} despliega su dominio: «${def.name}».`);
+  log(g, `🌐 ${heroName(p)} despliega su dominio: «${def.name}».`, { k: 'env', a: { c: def.id } });
   fx('env', { id: def.id, owner: p.idx });
   if (def.envStart) def.envStart(g, p);
   checkDeaths(g);
@@ -402,7 +405,11 @@ function doAttack(g, attacker, target) {
   attacker.attacksThisTurn++;
   const atkVal = attacker.isHero ? attacker.weapon.attack : attacker.attack;
   const retVal = target.isHero ? 0 : target.attack;
-  log(g, `⚔️ ${entName(attacker)} ataca a ${entName(target)}.`);
+  log(g, `⚔️ ${entName(attacker)} ataca a ${entName(target)}.`, {
+    k: 'attack',
+    a: attacker.isHero ? { h: attacker.def.id } : { c: attacker.id },
+    b: target.isHero ? { h: target.def.id } : { c: target.id }
+  });
   fx('attack', { attacker, target });
 
   if (target.isHero) {
@@ -454,7 +461,8 @@ function usePower(g, p, target) {
   }
   p.mana -= pow.cost;
   p.hero.powerUsed = true;
-  log(g, `✨ ${heroName(p)} usa «${pow.name}».`);
+  log(g, `✨ ${heroName(p)} usa «${pow.name}».`,
+    { k: 'power', a: { h: p.hero.def.id }, b: target ? (target.isHero ? { h: target.def.id } : { c: target.id }) : undefined });
   fx('power', { hero: p.hero.def.id, owner: p.idx, target });
   pow.use(g, p, target);
   checkDeaths(g);
