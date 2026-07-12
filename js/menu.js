@@ -33,6 +33,9 @@ const Save = {
   cardBacksOwned: ['clasico'],  // reversos conseguidos (tienda / logros)
   logros: [],                   // ids de logros completados
   counters: { packsOpened: 0, trades: 0, diamondsPulled: 0, flawless: 0 },  // para logros
+  /* GESTIÓN DEL MANICOMIO (minijuego): celdas asignadas, tareas en curso
+     (con timestamps: siguen corriendo aunque cierres el juego) y total */
+  gestion: { celdas: {}, tareas: {}, total: 0, created: 0 },
   settings: { sound: true, fastAI: false, showLog: true, cronicaVisible: true }
 };
 
@@ -209,6 +212,7 @@ function loadSave() {
       if (Array.isArray(s.cardBacksOwned)) Save.cardBacksOwned = s.cardBacksOwned;
       if (Array.isArray(s.logros)) Save.logros = s.logros;
       if (s.counters && typeof s.counters === 'object') Object.assign(Save.counters, s.counters);
+      if (s.gestion && typeof s.gestion === 'object') Object.assign(Save.gestion, s.gestion);
 
       /* migración de guardados antiguos (mazo único o mazo por héroe) */
       if (!Array.isArray(s.customDecks)) {
@@ -646,7 +650,7 @@ function renderProfile() {
 
 /* ---------- navegación entre pantallas ---------- */
 
-const SCREENS = ['register-screen', 'main-menu', 'story-screen', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'profile-screen', 'trade-screen', 'logros-screen', 'end-overlay'];
+const SCREENS = ['register-screen', 'main-menu', 'story-screen', 'deck-screen', 'shop-screen', 'settings-screen', 'online-screen', 'profile-screen', 'trade-screen', 'logros-screen', 'gestion-screen', 'end-overlay'];
 
 function showScreen(id) {
   for (const s of SCREENS) {
@@ -670,6 +674,8 @@ function showScreen(id) {
   if (id === 'profile-screen') renderProfile();
   if (id === 'trade-screen') renderTradeScreen();
   if (id === 'logros-screen') renderLogros();
+  if (id === 'gestion-screen') { if (typeof openGestion === 'function') openGestion(); }
+  else if (typeof closeGestion === 'function') closeGestion();
   if (typeof fitOverlays === 'function') fitOverlays();
 }
 

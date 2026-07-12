@@ -115,12 +115,13 @@
         <button id="btn-decks" class="img-btn menu-main"><img class="btn-ico" src="assets/icon_admin.png" alt="">Administrar Mazo</button>
         <button id="btn-shop" class="img-btn menu-main"><img class="btn-ico" src="assets/icon_tienda.png" alt="">Tienda de Mazos</button>
         <button id="btn-trade" class="img-btn menu-main"><img class="btn-ico" src="assets/icon_intercambio.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'btn-ico btn-ico-emoji',textContent:'🎁'}))">Compartir Cartas</button>
+        <button id="btn-gestion" class="img-btn menu-main"><img class="btn-ico" src="assets/icon_gestion.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'btn-ico btn-ico-emoji',textContent:'🏥'}))">Gestionar Manicomio</button>
         <button id="btn-settings" class="img-btn menu-main"><img class="btn-ico" src="assets/icon_ajustes.png" alt="">Ajustes</button>
         <div class="coins-badge">💊 <span id="menu-coins">0</span> pastillas</div>
         <div id="menu-profile" class="profile-badge"></div>
       </div>
       <button id="btn-logros" class="small-btn">🏅 Logros</button>
-      <div class="version-tag">v4.7</div>
+      <div class="version-tag">v4.8</div>
     </div>
   </div>
 
@@ -258,6 +259,31 @@
     </div>
   </div>
 
+  <!-- GESTIÓN DEL MANICOMIO: minijuego de farmeo pasivo -->
+  <div id="gestion-screen" class="overlay hidden">
+    <div id="gestion-stage">
+      <div id="g-roster"></div>
+      <div id="g-celdas"></div>
+      <div id="g-tokens"></div>
+      <div id="g-reloj"></div>
+      <div id="g-pago"></div>
+      <div id="g-puntos"></div>
+      <div id="g-aviso"></div>
+      <button id="btn-gestion-back" class="painted-btn" data-back aria-label="Volver"></button>
+    </div>
+  </div>
+
+  <!-- elegir tarea de un residente (gestión) -->
+  <div id="gtask-overlay" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:32px" id="gtask-title">📋 TAREAS</h2>
+      <div id="gtask-body"></div>
+      <div class="menu-buttons">
+        <button id="gtask-close" class="img-btn">← Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- INFORMACIÓN DE SOBRES: cómo funcionan y probabilidades reales -->
   <div id="packinfo-overlay" class="overlay hidden">
     <div class="menu-box">
@@ -330,6 +356,7 @@
 <script src="js/ui.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/logros.js"></script>
+<script src="js/gestion.js"></script>
 <script src="js/packs.js"></script>
 <script src="js/historia.js"></script>
 <script src="js/online.js"></script>

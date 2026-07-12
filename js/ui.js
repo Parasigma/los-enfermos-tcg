@@ -1164,6 +1164,11 @@ function fitStage() {
     const s6 = Math.min(window.innerWidth / 755, window.innerHeight / 917);
     ags.style.transform = `translate(-50%, -50%) scale(${s6})`;
   }
+  const gs = $('#gestion-stage');
+  if (gs) {
+    const s7 = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    gs.style.transform = `translate(-50%, -50%) scale(${s7})`;
+  }
 }
 
 /* ---------------- PANTALLA COMPLETA (navegador) ---------------- */

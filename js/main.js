@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('packinfo-close').addEventListener('click', () =>
     document.getElementById('packinfo-overlay').classList.add('hidden'));
 
+  /* gestión del manicomio (minijuego de farmeo pasivo) */
+  initGestion();
+
   /* logros: botón pequeño del menú + chequeo retroactivo al arrancar */
   document.getElementById('btn-logros').addEventListener('click', () => showScreen('logros-screen'));
   checkLogros();
