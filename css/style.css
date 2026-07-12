@@ -704,10 +704,10 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 #cronica-btn {
   position: absolute;
   left: 0; top: 380px;
-  width: 52px; height: 96px;
+  width: 40px; height: 119px;   /* proporción del arte (33x98) */
   cursor: pointer;
   z-index: 4;
-  background: url('../assets/Cronica_boton.png') 0 0 / 100% 100% no-repeat;
+  background: url('../assets/boton_cronica.png') 0 0 / 100% 100% no-repeat;
   filter: drop-shadow(2px 3px 6px rgba(0, 0, 0, .5));
 }
 #cronica-btn.hidden { display: none; }

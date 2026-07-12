@@ -346,10 +346,10 @@ function applyCronica() {
 }
 function initCronica() {
   const btn = $('#cronica-btn');
-  /* si el usuario aún no ha dejado Cronica_boton.png, pestaña propia */
+  /* si faltara el arte de la pestaña, se usa una propia de reserva */
   const probe = new Image();
   probe.onerror = () => btn.classList.add('sin-imagen');
-  probe.src = 'assets/Cronica_boton.png';
+  probe.src = 'assets/boton_cronica.png';
   $('#log-toggle').addEventListener('click', () => setCronicaVisible(false));
   btn.addEventListener('click', () => setCronicaVisible(true));
   applyCronica();
