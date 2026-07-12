@@ -307,6 +307,66 @@ function renderEnvBadge() {
   stage.dataset.env = G.env.def.id;   // para skins CSS por entorno (cap. 2)
 }
 
+/* ---------------- TABLEROS Y CRÓNICA ----------------
+   TABLEROS: aspecto del campo de batalla. Habrá más en el futuro:
+   añadir aquí {fondo, cronica} y elegir con tableroActivo. */
+const TABLEROS = {
+  base: {
+    id: 'base', name: 'Sanatorio San José',
+    fondo: 'assets/fondo_batalla.png',
+    cronica: 'assets/cronica.png'
+  }
+};
+let tableroActivo = 'base';
+
+function applyTablero() {
+  const t = TABLEROS[tableroActivo] || TABLEROS.base;
+  const bf = $('#board-frame');
+  if (bf) bf.style.backgroundImage = `url('${t.fondo}')`;
+  const cl = $('#cronica-layer');
+  if (cl) cl.style.backgroundImage = `url('${t.cronica}')`;
+}
+
+/* crónica extraíble: OCULTAR CRÓNICA la desliza fuera; la pestaña
+   #cronica-btn la devuelve. El estado se recuerda entre partidas. */
+function setCronicaVisible(visible) {
+  Save.settings.cronicaVisible = visible;
+  if (typeof persistSave === 'function') persistSave();
+  applyCronica();
+}
+function applyCronica() {
+  const layer = $('#cronica-layer');
+  const btn = $('#cronica-btn');
+  if (!layer || !btn) return;
+  const master = Save.settings.showLog !== false;   // ajuste global de crónica
+  const visible = Save.settings.cronicaVisible !== false;
+  layer.style.display = master ? '' : 'none';
+  layer.classList.toggle('oculta', !visible);
+  btn.classList.toggle('hidden', !master || visible);
+}
+function initCronica() {
+  const btn = $('#cronica-btn');
+  /* si el usuario aún no ha dejado Cronica_boton.png, pestaña propia */
+  const probe = new Image();
+  probe.onerror = () => btn.classList.add('sin-imagen');
+  probe.src = 'assets/Cronica_boton.png';
+  $('#log-toggle').addEventListener('click', () => setCronicaVisible(false));
+  btn.addEventListener('click', () => setCronicaVisible(true));
+  applyCronica();
+}
+
+/* ---------------- REVERSOS DE CARTA ----------------
+   Coleccionables: el activo (Save.cardBack) tiñe todos los dorsos vía
+   la variable CSS --card-back. Para añadir reversos nuevos: entrada
+   aquí (y si se desbloquea por logro, su condición en owned()). */
+const CARD_BACKS = [
+  { id: 'clasico', name: 'Clásico del Manicomio', img: 'assets/reverso.png', owned: () => true }
+];
+function applyCardBack() {
+  const cb = CARD_BACKS.find(b => b.id === Save.cardBack && b.owned()) || CARD_BACKS[0];
+  document.documentElement.style.setProperty('--card-back', `url('${cb.img}')`);
+}
+
 function renderEnemyHand() {
   const box = $('#enemy-hand');
   box.innerHTML = '';

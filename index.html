@@ -31,8 +31,13 @@
     <div id="player-hud" class="hud"></div>
     <div id="player-hand" class="hand-row"></div>
     <button id="end-turn" aria-label="Fin del turno"></button>
-    <div id="log-panel"><div id="log"></div></div>
-    <div id="log-toggle" title="Ocultar / mostrar la crónica"></div>
+    <!-- CRÓNICA extraíble: la placa (assets/cronica.png) se desliza fuera
+         con el botón pintado OCULTAR CRÓNICA; #cronica-btn la devuelve -->
+    <div id="cronica-layer">
+      <div id="log-panel"><div id="log"></div></div>
+      <div id="log-toggle" title="Ocultar la crónica"></div>
+    </div>
+    <div id="cronica-btn" class="hidden" title="Mostrar la crónica"></div>
     <button id="btn-pause" title="Menú de pausa">⏸</button>
     <button id="intro-skip" class="small-btn hidden">⏭ Saltar</button>
   </div>
@@ -106,11 +111,12 @@
         <button id="btn-online" class="img-btn menu-main"><img class="btn-ico" src="assets/icon_online.png" alt="">Jugar Online</button>
         <button id="btn-decks" class="img-btn menu-main"><img class="btn-ico" src="assets/icon_admin.png" alt="">Administrar Mazo</button>
         <button id="btn-shop" class="img-btn menu-main"><img class="btn-ico" src="assets/icon_tienda.png" alt="">Tienda de Mazos</button>
+        <button id="btn-trade" class="img-btn menu-main"><span class="btn-ico btn-ico-emoji">🎁</span>Compartir Cartas</button>
         <button id="btn-settings" class="img-btn menu-main"><img class="btn-ico" src="assets/icon_ajustes.png" alt="">Ajustes</button>
         <div class="coins-badge">💊 <span id="menu-coins">0</span> pastillas</div>
         <div id="menu-profile" class="profile-badge"></div>
       </div>
-      <div class="version-tag">v4.0</div>
+      <div class="version-tag">v4.1</div>
     </div>
   </div>
 
@@ -193,10 +199,6 @@
           <button id="btn-join" class="img-btn join-btn">⚔️ Unirse</button>
         </div>
         <div id="join-status" class="hint"></div>
-      </div>
-      <div class="online-box">
-        <button id="btn-trade" class="img-btn">🎁 Compartir cartas con un amigo</button>
-        <div class="hint">Regala o intercambia cartas por código (WhatsApp y listo). Nadie pierde cartas.</div>
       </div>
       <button id="btn-online-back" class="img-btn">← Volver</button>
     </div>

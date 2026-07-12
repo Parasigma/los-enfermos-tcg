@@ -317,10 +317,11 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   opacity: .92;
 }
 
-/* reverso oficial de las cartas (assets/reverso.png) */
+/* reverso de las cartas: el ACTIVO lo fija applyCardBack() vía la
+   variable --card-back (sistema de reversos coleccionables) */
 .card-reverse {
   width: 100%; height: 100%;
-  background: url('../assets/reverso.png') 0 0 / 100% 100% no-repeat;
+  background: var(--card-back, url('../assets/reverso.png')) 0 0 / 100% 100% no-repeat;
   border-radius: 10px;
 }
 
@@ -329,7 +330,7 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   width: 47px; height: 67px;
   margin: 0 -6px;
   border-radius: 5px;
-  background: url('../assets/reverso.png') 0 0 / 100% 100% no-repeat;
+  background: var(--card-back, url('../assets/reverso.png')) 0 0 / 100% 100% no-repeat;
   box-shadow: 0 3px 6px rgba(0, 0, 0, .5);
 }
 
@@ -681,14 +682,54 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   cursor: not-allowed;
 }
 
-/* ---------------- CRÓNICA (panel pintado a la izquierda) ---------------- */
+/* ---------------- CRÓNICA (placa extraíble a la izquierda) ----------------
+   La placa vive en su propia capa (assets/cronica.png, en la posición
+   exacta donde estaba pintada) y se desliza fuera del tablero. */
+
+#cronica-layer {
+  position: absolute;
+  left: 1px; top: 159px;
+  width: 216px; height: 623px;
+  background: url('../assets/cronica.png') 0 0 / 100% 100% no-repeat;
+  z-index: 4;
+  transition: transform .38s ease, opacity .38s ease;
+}
+#cronica-layer.oculta {
+  transform: translateX(-115%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* pestaña para volver a sacar la crónica (imagen del usuario si existe;
+   si no, una pestaña sobria con el pergamino) */
+#cronica-btn {
+  position: absolute;
+  left: 0; top: 380px;
+  width: 52px; height: 96px;
+  cursor: pointer;
+  z-index: 4;
+  background: url('../assets/Cronica_boton.png') 0 0 / 100% 100% no-repeat;
+  filter: drop-shadow(2px 3px 6px rgba(0, 0, 0, .5));
+}
+#cronica-btn.hidden { display: none; }
+#cronica-btn:hover { filter: brightness(1.2) drop-shadow(2px 3px 8px rgba(255, 220, 120, .5)); }
+#cronica-btn.sin-imagen {
+  background: linear-gradient(90deg, #1c4a42, #16403a);
+  border: 2px solid #0d2b26;
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+}
+#cronica-btn.sin-imagen::after {
+  content: '📜';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+}
 
 #log-panel {
   position: absolute;
-  left: 32px; top: 262px;
+  left: 31px; top: 103px;
   width: 154px; height: 424px;
   padding: 6px 8px;
-  z-index: 4;
 }
 #log {
   height: 100%;
@@ -704,11 +745,10 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 
 #log-toggle {
   position: absolute;
-  left: 52px; top: 700px;
+  left: 51px; top: 541px;
   width: 116px; height: 44px;
   cursor: pointer;
   border-radius: 8px;
-  z-index: 4;
 }
 #log-toggle:hover { box-shadow: 0 0 10px rgba(255, 255, 255, .35); }
 
@@ -1696,6 +1736,28 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 .bl-elo { color: var(--gold); font-weight: bold; text-align: right; }
 .bl-date { color: #8fa5a0; font-size: 11.5px; text-align: right; }
 
+/* selector de REVERSO de cartas (ficha del paciente) */
+.cb-title { color: var(--gold); font-size: 17px; margin: 14px 0 8px; }
+.cardback-list { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.cb-item {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  font-size: 12.5px;
+  transition: border-color .12s, filter .12s;
+}
+.cb-item:hover { filter: brightness(1.15); }
+.cb-item.active { border-color: var(--gold); background: rgba(255, 210, 87, .08); }
+.cb-item.locked { filter: grayscale(.9) brightness(.6); cursor: not-allowed; }
+.cb-img {
+  width: 74px; height: 106px;
+  border-radius: 8px;
+  background-size: 100% 100%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .5);
+}
+
 /* ---------------- PANTALLA ONLINE ---------------- */
 
 .online-box {
@@ -1864,6 +1926,11 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   object-fit: contain;
   pointer-events: none;
   filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .55));
+}
+/* icono emoji (botones sin imagen propia todavía) */
+.btn-ico-emoji {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 62px;
 }
 
 .menu-buttons {

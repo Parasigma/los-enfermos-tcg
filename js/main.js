@@ -152,9 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* partida */
   document.getElementById('end-turn').addEventListener('click', onEndTurn);
-  document.getElementById('log-toggle').addEventListener('click', () => {
-    document.getElementById('log').classList.toggle('hidden');
-  });
+  /* crónica extraíble + tablero activo + reverso de cartas elegido */
+  initCronica();
+  applyTablero();
+  applyCardBack();
 
   /* contenedores con el marco modular de piezas box_* */
   document.querySelectorAll('.menu-box').forEach(b => box9(b));

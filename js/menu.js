@@ -29,7 +29,8 @@ const Save = {
   stats: { games: 0, wins: 0, losses: 0, streak: 0, bestStreak: 0, elo: 1000, log: [] },
   tradeOut: [],                 // envíos en depósito pendientes (regalos/intercambios)
   cardMinus: {},                // cartas ENVIADAS a amigos: descuentan de tus copias
-  settings: { sound: true, fastAI: false, showLog: true }
+  cardBack: 'clasico',          // reverso de carta activo (sistema de reversos)
+  settings: { sound: true, fastAI: false, showLog: true, cronicaVisible: true }
 };
 
 /* héroes jugables: se desbloquean comprando su set */
@@ -198,6 +199,7 @@ function loadSave() {
       if (s.stats && typeof s.stats === 'object') Object.assign(Save.stats, s.stats);
       if (Array.isArray(s.tradeOut)) Save.tradeOut = s.tradeOut;
       if (s.cardMinus && typeof s.cardMinus === 'object') Save.cardMinus = s.cardMinus;
+      if (typeof s.cardBack === 'string') Save.cardBack = s.cardBack;
 
       /* migración de guardados antiguos (mazo único o mazo por héroe) */
       if (!Array.isArray(s.customDecks)) {
@@ -546,10 +548,8 @@ function applySettings() {
   Sfx.enabled = Save.settings.sound;
   if (typeof Music !== 'undefined') Music.refresh();
   AIH.delay = ms => new Promise(r => setTimeout(r, Save.settings.fastAI ? ms * 0.35 : ms));
-  const logPanel = document.getElementById('log-panel');
-  const logToggle = document.getElementById('log-toggle');
-  if (logPanel) logPanel.style.display = Save.settings.showLog ? '' : 'none';
-  if (logToggle) logToggle.style.display = Save.settings.showLog ? '' : 'none';
+  /* la crónica extraíble respeta el ajuste global «Mostrar crónica» */
+  if (typeof applyCronica === 'function') applyCronica();
 }
 
 /* ---------- FICHA DEL PACIENTE: historial de batallas y ELO ----------
@@ -605,7 +605,22 @@ function renderProfile() {
             <span class="bl-date">${fmt(l.t)}</span>
           </div>`).join('')
         : '<p class="hint">Aún no hay batallas en el expediente. ¡Al tablero!</p>'}
+    </div>
+    <h3 class="cb-title">🂠 Reverso de cartas</h3>
+    <div class="cardback-list">
+      ${CARD_BACKS.map(b => `
+        <div class="cb-item ${b.owned() ? '' : 'locked'} ${Save.cardBack === b.id ? 'active' : ''}" data-back="${b.id}" title="${b.name}">
+          <div class="cb-img" style="background-image:url('${b.img}')"></div>
+          <span>${b.name}</span>
+        </div>`).join('')}
     </div>`;
+  el.querySelectorAll('.cb-item:not(.locked)').forEach(it =>
+    it.addEventListener('click', () => {
+      Save.cardBack = it.dataset.back;
+      persistSave();
+      applyCardBack();
+      renderProfile();
+    }));
 }
 
 /* ---------- navegación entre pantallas ---------- */
