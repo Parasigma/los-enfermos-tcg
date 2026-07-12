@@ -1027,6 +1027,11 @@ function fitStage() {
     const s5 = Math.min(window.innerWidth / 966, window.innerHeight / 1080);
     sts.style.transform = `translate(-50%, -50%) scale(${s5})`;
   }
+  const ags = $('#settings-stage');
+  if (ags) {
+    const s6 = Math.min(window.innerWidth / 755, window.innerHeight / 917);
+    ags.style.transform = `translate(-50%, -50%) scale(${s6})`;
+  }
 }
 
 /* ---------------- PANTALLA COMPLETA (navegador) ---------------- */

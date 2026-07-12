@@ -2509,19 +2509,51 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   font-size: 18px;
   border-bottom: 1px solid rgba(184, 134, 11, .25);
 }
+/* interruptor SÍ/NO con los botones pintados (el texto viene en el arte) */
 .toggle {
-  font-family: inherit;
-  width: 70px;
-  padding: 6px 0;
-  font-size: 15px; font-weight: bold;
-  border-radius: 16px;
-  border: 2px solid #8a3a34;
-  background: #4a1d1d;
-  color: #ffb3ab;
+  width: 104px; height: 54px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: url('../assets/boton_ajustes_no.png') center / 100% 100% no-repeat;
+  color: transparent;
+  font-size: 0;
   cursor: pointer;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .45));
+  transition: filter .1s, transform .1s;
 }
-.toggle.on {
-  border-color: #3f7a4a;
-  background: #1d4a28;
-  color: #8dff9d;
+.toggle:hover { filter: brightness(1.15) drop-shadow(0 0 6px rgba(255, 220, 120, .5)); }
+.toggle:active { transform: scale(.96); }
+.toggle.on { background-image: url('../assets/boton_ajustes_si.png'); }
+
+/* ---------------- PANTALLA DE AJUSTES PINTADA (ajustes_UI.png) ---------------- */
+
+#settings-stage {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 755px; height: 917px;
+  transform: translate(-50%, -50%);
+  background: url('../assets/ajustes_UI.png') 0 0 / 100% 100% no-repeat;
 }
+/* interruptores a la derecha de cada placa pintada */
+#settings-stage .stg-toggle { position: absolute; left: 505px; width: 132px; height: 66px; }
+#set-sound { top: 170px; }
+#set-fast { top: 252px; }
+#set-log { top: 338px; }
+/* banda de la ficha: se cubre el texto de muestra con el dato real */
+#settings-profile {
+  position: absolute;
+  left: 104px; top: 429px;
+  width: 547px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(#d8bd7d, #b89a55);
+  border-radius: 5px;
+  font-size: 13.5px; font-weight: bold;
+  color: #2b1d0e;
+  white-space: nowrap; overflow: hidden;
+}
+/* zonas clicables sobre los botones pintados */
+#btn-export-save { left: 205px; top: 497px; width: 365px; height: 52px; }
+#btn-import-save { left: 205px; top: 570px; width: 365px; height: 52px; }
+#btn-reset-save { left: 283px; top: 651px; width: 210px; height: 48px; }
+#btn-settings-back { left: 95px; top: 743px; width: 565px; height: 120px; border-radius: 26px; }

@@ -110,7 +110,7 @@
         <div class="coins-badge">💊 <span id="menu-coins">0</span> pastillas</div>
         <div id="menu-profile" class="profile-badge"></div>
       </div>
-      <div class="version-tag">v3.6</div>
+      <div class="version-tag">v3.7</div>
     </div>
   </div>
 
@@ -202,22 +202,18 @@
     </div>
   </div>
 
-  <!-- AJUSTES -->
+  <!-- AJUSTES (panel pintado en assets/ajustes_UI.png; los interruptores
+       usan boton_ajustes_si/no y el resto son zonas clicables) -->
   <div id="settings-screen" class="overlay hidden">
-    <div class="menu-box">
-      <h2 class="logo" style="font-size:40px">⚙️ AJUSTES</h2>
-      <div class="settings-list">
-        <div class="setting-row"><span>🔊 Sonido</span><button id="set-sound" class="toggle"></button></div>
-        <div class="setting-row"><span>⏩ IA rápida</span><button id="set-fast" class="toggle"></button></div>
-        <div class="setting-row"><span>📜 Mostrar crónica</span><button id="set-log" class="toggle"></button></div>
-      </div>
-      <div id="settings-profile" class="hint"></div>
-      <div class="menu-buttons">
-        <button id="btn-export-save" class="small-btn">📋 Copiar código de progreso</button>
-        <button id="btn-import-save" class="small-btn">📥 Cargar código de progreso</button>
-        <button id="btn-reset-save" class="small-btn danger">🗑️ Borrar progreso</button>
-        <button class="img-btn" data-back>← Volver</button>
-      </div>
+    <div id="settings-stage">
+      <button id="set-sound" class="toggle stg-toggle" title="Sonido"></button>
+      <button id="set-fast" class="toggle stg-toggle" title="IA rápida"></button>
+      <button id="set-log" class="toggle stg-toggle" title="Mostrar crónica"></button>
+      <div id="settings-profile"></div>
+      <button id="btn-export-save" class="painted-btn" title="Copiar código de progreso"></button>
+      <button id="btn-import-save" class="painted-btn" title="Cargar código de progreso"></button>
+      <button id="btn-reset-save" class="painted-btn" title="Borrar progreso"></button>
+      <button id="btn-settings-back" class="painted-btn" data-back aria-label="Volver"></button>
     </div>
   </div>
 
