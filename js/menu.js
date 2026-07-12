@@ -670,6 +670,7 @@ function showScreen(id) {
   }
   if (id === 'deck-screen') openDeckEditor();
   if (id === 'story-screen') renderStoryScreen();
+  if (id === 'deck-screen') updateDeckReversoIcon();
   if (id === 'settings-screen') renderSettings();
   if (id === 'profile-screen') renderProfile();
   if (id === 'trade-screen') renderTradeScreen();
@@ -1281,6 +1282,37 @@ function renderBacksShop() {
     Sfx.play('draw');
     renderBacksShop();
   }));
+}
+
+/* ---------- selector de reverso (icono del admin de mazos) ---------- */
+
+function updateDeckReversoIcon() {
+  const b = document.getElementById('btn-deck-reverso');
+  if (!b) return;
+  const cb = CARD_BACKS.find(x => x.id === Save.cardBack && x.owned()) || CARD_BACKS[0];
+  b.style.backgroundImage = `url('${cb.img}')`;
+}
+
+function renderReversoPicker() {
+  const el = document.getElementById('reverso-body');
+  if (!el) return;
+  el.innerHTML = `<div class="cardback-list">
+    ${CARD_BACKS.map(b => `
+      <div class="cb-item ${b.owned() ? '' : 'locked'} ${Save.cardBack === b.id ? 'active' : ''}" data-back="${b.id}"
+           title="${b.owned() ? b.name : b.name + ' — ' + (b.hint || 'Bloqueado')}">
+        <div class="cb-img" style="background-image:url('${b.img}')"></div>
+        <span>${b.owned() ? b.name : '🔒 ' + b.name}</span>
+      </div>`).join('')}
+  </div>`;
+  el.querySelectorAll('.cb-item:not(.locked)').forEach(it =>
+    it.addEventListener('click', () => {
+      Save.cardBack = it.dataset.back;
+      persistSave();
+      applyCardBack();
+      updateDeckReversoIcon();
+      renderReversoPicker();
+      Sfx.play('draw');
+    }));
 }
 
 /* ---------- ajustes ---------- */

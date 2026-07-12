@@ -317,20 +317,22 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   opacity: .92;
 }
 
-/* reverso de las cartas: el ACTIVO lo fija applyCardBack() vía la
-   variable --card-back (sistema de reversos coleccionables) */
+/* reverso de las cartas: por defecto el CLÁSICO (los rivales de la
+   historia siempre lo llevan); el equipado solo tiñe TUS dorsos, que
+   van marcados con .cb-mine (applyCardBack fija --card-back) */
 .card-reverse {
   width: 100%; height: 100%;
-  background: var(--card-back, url('../assets/reverso.png')) 0 0 / 100% 100% no-repeat;
+  background: url('../assets/reverso.png') 0 0 / 100% 100% no-repeat;
   border-radius: 10px;
 }
+.cb-mine { background-image: var(--card-back, url('../assets/reverso.png')); }
 
-/* dorso de carta (mano enemiga) */
+/* dorso de carta (mano enemiga: siempre el clásico) */
 .card-back {
   width: 47px; height: 67px;
   margin: 0 -6px;
   border-radius: 5px;
-  background: var(--card-back, url('../assets/reverso.png')) 0 0 / 100% 100% no-repeat;
+  background: url('../assets/reverso.png') 0 0 / 100% 100% no-repeat;
   box-shadow: 0 3px 6px rgba(0, 0, 0, .5);
 }
 
@@ -2457,6 +2459,24 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 }
 
 /* título en la placa de pergamino: es el DESPLEGABLE de mazos */
+/* icono del reverso equipado (arriba-izquierda del admin de mazos) */
+#btn-deck-reverso {
+  position: absolute;
+  left: 70px; top: 42px;
+  width: 62px; height: 88px;
+  border: 3px solid var(--gold-dark);
+  border-radius: 8px;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .5));
+  transition: filter .12s, transform .12s;
+  z-index: 5;
+  padding: 0;
+}
+#btn-deck-reverso:hover { filter: brightness(1.2) drop-shadow(0 0 10px rgba(255, 210, 87, .6)); transform: scale(1.05); }
+#reverso-overlay { z-index: 700; }
+
 #deck-title {
   position: absolute;
   left: 185px; top: 60px;

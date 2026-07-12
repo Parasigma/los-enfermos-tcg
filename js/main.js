@@ -60,6 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
   /* gestión del manicomio (minijuego de farmeo pasivo) */
   initGestion();
 
+  /* selector de reverso desde el admin de mazos */
+  document.getElementById('btn-deck-reverso').addEventListener('click', () => {
+    renderReversoPicker();
+    document.getElementById('reverso-overlay').classList.remove('hidden');
+    fitOverlays();
+  });
+  document.getElementById('reverso-close').addEventListener('click', () =>
+    document.getElementById('reverso-overlay').classList.add('hidden'));
+
   /* logros: botón pequeño del menú + chequeo retroactivo al arrancar */
   document.getElementById('btn-logros').addEventListener('click', () => showScreen('logros-screen'));
   checkLogros();

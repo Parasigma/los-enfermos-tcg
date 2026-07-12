@@ -796,7 +796,7 @@ function runDrawFlight(uid, owner) {
     fly.innerHTML = `
       <div class="flip3d fly-flip">
         <div class="flip-inner">
-          <div class="flip-back card-reverse"></div>
+          <div class="flip-back card-reverse cb-mine"></div>
           <div class="flip-front"></div>
         </div>
       </div>`;

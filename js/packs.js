@@ -360,7 +360,7 @@ function showPackReveal() {
     wrap.innerHTML = `
       <div class="flip3d">
         <div class="flip-inner">
-          <div class="flip-back card-reverse${backCls}"></div>
+          <div class="flip-back card-reverse cb-mine${backCls}"></div>
           <div class="flip-front"></div>
         </div>
       </div>

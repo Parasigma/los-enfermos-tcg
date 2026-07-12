@@ -121,7 +121,7 @@
         <div id="menu-profile" class="profile-badge"></div>
       </div>
       <button id="btn-logros" class="small-btn">🏅 Logros</button>
-      <div class="version-tag">v4.9</div>
+      <div class="version-tag">v5.0</div>
     </div>
   </div>
 
@@ -140,6 +140,7 @@
   <!-- GESTOR DE MAZOS (fondo pintado en assets/fondo_mazos.jpg) -->
   <div id="deck-screen" class="overlay hidden">
     <div id="deck-stage">
+      <button id="btn-deck-reverso" title="Cambiar el reverso de tus cartas"></button>
       <div id="deck-title"></div>
       <div id="deck-dropdown" class="hidden"></div>
       <div id="deck-hero-window" title="Héroe de tu mazo"></div>
@@ -280,6 +281,18 @@
       <div id="gtask-body"></div>
       <div class="menu-buttons">
         <button id="gtask-close" class="img-btn">← Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- elegir el REVERSO de tus cartas (desde el admin de mazos) -->
+  <div id="reverso-overlay" class="overlay hidden">
+    <div class="menu-box">
+      <h2 class="logo" style="font-size:34px">🂠 TU REVERSO</h2>
+      <p class="lore">El reverso equipado viste <b>tus</b> dorsos (robos y sobres). Los rivales de la historia siempre usan el clásico.</p>
+      <div id="reverso-body"></div>
+      <div class="menu-buttons">
+        <button id="reverso-close" class="img-btn">← Cerrar</button>
       </div>
     </div>
   </div>
