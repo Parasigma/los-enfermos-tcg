@@ -40,6 +40,7 @@ const Card3D = (() => {
   let ready = false, loading = false, active = false, rafId = null;
   let pending = [], pendingArt = null, pendingData = null;
   let tRX = 0, tRY = 0, cRX = 0, cRY = 0;
+  let tFlip = 0, cFlip = 0;   // VOLTEO: media vuelta acumulada (gesto brusco)
   let lastW = 0, lastH = 0;
 
   function supported() {
@@ -667,7 +668,8 @@ const Card3D = (() => {
     lastT = now;
     cRX += (tRX - cRX) * 0.16;
     cRY += (tRY - cRY) * 0.16;
-    if (pivot) { pivot.rotation.x = cRX; pivot.rotation.y = cRY; }
+    cFlip += (tFlip - cFlip) * 0.12;
+    if (pivot) { pivot.rotation.x = cRX; pivot.rotation.y = cRY + cFlip; }
     /* velocidad de giro: alimenta el brillo y los destellos */
     const speed = (Math.abs(cRX - lastRX) + Math.abs(cRY - lastRY)) / Math.max(dt, 0.001);
     lastRX = cRX; lastRY = cRY;
@@ -703,8 +705,11 @@ const Card3D = (() => {
       illoSrc = null;
       clearText();
       tRX = tRY = cRX = cRY = 0;
+      tFlip = cFlip = 0;
     },
     setTilt(cx, cy) { tRY = cx * 0.62; tRX = -cy * 0.48; },
+    /* volteo: media vuelta del modelo en la dirección del gesto */
+    flip(dir) { tFlip += Math.PI * (dir >= 0 ? 1 : -1); },
     resize
   };
 })();

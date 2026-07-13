@@ -1506,6 +1506,49 @@ function showEnd(winner) {
 
 let ciDragging = false;
 
+/* VOLTEO estilo Hearthstone: un gesto BRUSCO de lado a lado mientras
+   arrastras la carta grande le da la vuelta y muestra TU reverso. */
+let ciFlipAngle = 0;      // 0, ±180, ±360... (acumulado, gira en la dirección del gesto)
+let ciFlipAnim = false;   // bloquea la inclinación mientras voltea
+let ciSwipeX = 0, ciSwipeT = 0;
+
+/* dorso del inspector: usa el reverso EQUIPADO. Preparado para los
+   reversos ANIMADOS del futuro: si el reverso define `anim` (webm),
+   el dorso lo reproduce en bucle en vez de la imagen fija. */
+function ciBackHTML() {
+  const cb = (typeof CARD_BACKS !== 'undefined' && typeof Save !== 'undefined')
+    ? (CARD_BACKS.find(b => b.id === Save.cardBack && b.owned()) || CARD_BACKS[0])
+    : null;
+  const video = cb && cb.anim
+    ? `<video src="${cb.anim}" autoplay loop muted playsinline></video>`
+    : '';
+  return `<div class="ci-back card-reverse cb-mine">${video}</div>`;
+}
+
+function ciBaseTransform() {
+  return ciFlipAngle ? `rotateY(${ciFlipAngle}deg)` : 'none';
+}
+
+function doCiFlip(dir) {
+  if (ciFlipAnim) return;
+  ciFlipAnim = true;
+  Sfx.play('draw');
+  const card = $('#ci-card');
+  if (card.classList.contains('is-3d')) {
+    /* DIAMOND: gira el propio modelo 3D */
+    if (typeof Card3D !== 'undefined' && Card3D.flip) Card3D.flip(dir);
+    setTimeout(() => { ciFlipAnim = false; }, 650);
+    return;
+  }
+  ciFlipAngle += 180 * (dir >= 0 ? 1 : -1);
+  card.style.transition = 'transform .5s cubic-bezier(.25, .8, .3, 1)';
+  card.style.transform = ciBaseTransform();
+  setTimeout(() => {
+    card.style.transition = '';
+    ciFlipAnim = false;
+  }, 520);
+}
+
 /* pulsación larga (~450ms sin mover): la vía táctil para inspeccionar.
    Marca el elemento con __lpFired para que el clic posterior se ignore. */
 function addLongPress(el, fn) {
@@ -1539,8 +1582,11 @@ function abortDrag() {
 
 function openCardInspector(c, variantOverride) {
   const card = $('#ci-card');
+  ciFlipAngle = 0;
+  ciFlipAnim = false;
   card.innerHTML = bigCardHTML(c)
-    + '<div class="ci-fx" id="ci-holo"></div><div class="ci-fx" id="ci-sparkle"></div><div id="ci-glare"></div>';
+    + '<div class="ci-fx" id="ci-holo"></div><div class="ci-fx" id="ci-sparkle"></div><div id="ci-glare"></div>'
+    + ciBackHTML();
   if (variantOverride !== undefined) {
     const el = card.querySelector('.card');
     el.classList.remove('v-brillante', 'v-dorada', 'v-alterada', 'v-foil', 'v-diamond');
@@ -1597,6 +1643,8 @@ function openCardInspector(c, variantOverride) {
 function closeCardInspector() {
   $('#card-inspector').classList.add('hidden');
   ciDragging = false;
+  ciFlipAngle = 0;
+  ciFlipAnim = false;
   if (typeof Card3D !== 'undefined') Card3D.close();
 }
 
@@ -1605,6 +1653,21 @@ function ciTilt(e) {
   const card = $('#ci-card');
   const r = card.getBoundingClientRect();
   if (!r.width) return;
+  /* gesto BRUSCO de lado a lado mientras se arrastra → VOLTEO */
+  if (ciDragging) {
+    const dt = e.timeStamp - ciSwipeT;
+    if (dt > 0 && dt < 120 && ciSwipeT) {
+      const vx = (e.clientX - ciSwipeX) / dt;   // px/ms
+      if (Math.abs(vx) > 1.5) {
+        ciSwipeX = e.clientX; ciSwipeT = e.timeStamp;
+        doCiFlip(vx > 0 ? 1 : -1);
+        return;
+      }
+    }
+    ciSwipeX = e.clientX;
+    ciSwipeT = e.timeStamp;
+  }
+  if (ciFlipAnim) return;   // mientras voltea, no se inclina
   const px = (e.clientX - r.left) / r.width - 0.5;
   const py = (e.clientY - r.top) / r.height - 0.5;
   const cx = Math.max(-0.65, Math.min(0.65, px));
@@ -1617,7 +1680,8 @@ function ciTilt(e) {
     if (typeof Card3D !== 'undefined') Card3D.setTilt(cx, cy);
     return;
   }
-  card.style.transform = `rotateY(${cx * 44}deg) rotateX(${-cy * 34}deg)`;
+  /* la cara vista se inclina; el volteo acumulado se conserva */
+  card.style.transform = `rotateY(${ciFlipAngle + cx * 44}deg) rotateX(${-cy * 34}deg)`;
 }
 
 function initCardInspector() {
@@ -1625,6 +1689,8 @@ function initCardInspector() {
   card.addEventListener('pointerdown', e => {
     e.preventDefault();
     ciDragging = true;
+    ciSwipeX = e.clientX;
+    ciSwipeT = e.timeStamp;
     card.classList.add('dragging');
     ciTilt(e);
   });
@@ -1633,13 +1699,13 @@ function initCardInspector() {
     if (!ciDragging) return;
     ciDragging = false;
     card.classList.remove('dragging');
-    card.style.transform = 'none'; // vuelve suave a su sitio
+    if (!ciFlipAnim) card.style.transform = ciBaseTransform(); // vuelve suave (conserva el volteo)
   });
   /* en ratón: la carta se inclina y el foil brilla al pasar por encima */
   card.addEventListener('pointermove', e => { if (!ciDragging) ciTilt(e); });
   card.addEventListener('pointerleave', () => {
     if (ciDragging) return;
-    card.style.transform = 'none';
+    if (!ciFlipAnim) card.style.transform = ciBaseTransform();
     card.style.setProperty('--gx', '50%');
     card.style.setProperty('--gy', '50%');
     if (card.classList.contains('is-3d') && typeof Card3D !== 'undefined') Card3D.setTilt(0, 0);

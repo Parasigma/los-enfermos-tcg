@@ -969,6 +969,7 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
    HTML se oculta pero conserva su caja: es el área de arrastre. */
 #ci-card.is-3d { transition: none; }
 #ci-card.is-3d .card,
+#ci-card.is-3d .ci-back,
 #ci-card.is-3d #ci-holo,
 #ci-card.is-3d #ci-sparkle,
 #ci-card.is-3d #ci-glare { visibility: hidden; }
@@ -982,6 +983,28 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
   pointer-events: none;
 }
 #ci-card.dragging { transition: none; cursor: grabbing; }
+
+/* VOLTEO estilo Hearthstone: la cara frontal se oculta al girar 180°
+   y aparece el dorso (.ci-back) con TU reverso equipado */
+#ci-card .card,
+#ci-card .ci-fx,
+#ci-card #ci-glare { backface-visibility: hidden; }
+.ci-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  overflow: hidden;
+  z-index: 4;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+}
+/* preparado para reversos ANIMADOS (webm) del futuro */
+.ci-back video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
 /* reflejo que sigue al puntero: da vida a foils y doradas */
 #ci-glare {
   position: absolute;
