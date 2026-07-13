@@ -1922,6 +1922,16 @@ html, #game, #game * { cursor: url('../assets/mouse_cursor.png') 10 4, auto; }
 .lg-desc { color: #a8c2bb; font-size: 12.5px; }
 .lg-reward { color: var(--gold); font-size: 12.5px; }
 .lg-hidden { opacity: .65; border-style: dashed; }
+/* miniatura de la recompensa del logro (reverso, etc.) */
+.lg-rimg {
+  width: 34px; height: 48px;
+  margin-left: auto;
+  border-radius: 5px;
+  flex-shrink: 0;
+  border: 1px solid var(--lt-color, var(--gold-dark));
+  box-shadow: 0 3px 7px rgba(0, 0, 0, .5);
+}
+.logro-toast .lg-rimg { margin-left: 4px; }
 
 /* aviso flotante de logro desbloqueado */
 .logro-toast {

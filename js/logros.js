@@ -31,7 +31,9 @@ const LOGROS = [
     cond: () => Save.counters.packsOpened >= 1 },
   { id: 'cae_nikuman', tier: 'bronce', name: 'La Mano Negra, ingresada',
     desc: 'Vence a Nikuman en el Modo Historia.',
-    cond: () => Save.story.defeated.includes('nikuman') },
+    cond: () => Save.story.defeated.includes('nikuman'),
+    rewardBack: 'corrupto',
+    rewardDesc: 'Reverso Corrupto (compra desbloqueada en la Tienda)' },
   { id: 'veterano', tier: 'bronce', name: 'Celador veterano',
     desc: 'Gana 10 partidas.',
     cond: () => Save.stats.wins >= 10 },
@@ -56,7 +58,7 @@ const LOGROS = [
     cond: () => typeof storyEnemies === 'function' && storyEnemies().length > 0 &&
       storyEnemies().every(e => Save.story.defeated.includes(e.id)),
     reward: { type: 'card', id: 'trofeoManicomio' },
-    rewardDesc: 'Carta especial «Trofeo del Manicomio» + desbloquea un reverso en la Tienda' },
+    rewardDesc: 'Carta especial «Trofeo del Manicomio»' },
   { id: 'diamante_sobre', tier: 'oro', name: 'Brilla en la oscuridad',
     desc: 'Saca una carta DIAMOND de un sobre.',
     cond: () => Save.counters.diamondsPulled >= 1 },
@@ -65,7 +67,8 @@ const LOGROS = [
   { id: 'intocable', tier: 'platino', name: 'Intocable',
     desc: 'Vence a un paciente de la historia sin perder ni un solo punto de vida en toda la partida.',
     cond: () => (Save.counters.flawless || 0) >= 1,
-    rewardDesc: 'Desbloquea un reverso en la Tienda' },
+    rewardBack: 'cyborg',
+    rewardDesc: 'Reverso Cyborg (compra desbloqueada en la Tienda)' },
   { id: 'boss_caido', tier: 'platino', name: 'El verdadero enfermo',
     desc: 'Derrota a Mario, el Paciente Supremo.',
     cond: () => Save.story.defeated.includes('mario'),
@@ -101,6 +104,15 @@ function grantLogroReward(r) {
   }
 }
 
+/* miniatura de la recompensa (p. ej. el reverso que desbloquea) */
+function logroRewardIconHTML(l) {
+  if (l.rewardBack && typeof CARD_BACKS !== 'undefined') {
+    const cb = CARD_BACKS.find(b => b.id === l.rewardBack);
+    if (cb) return `<img class="lg-rimg" src="${cb.img}" alt="" title="${cb.name}">`;
+  }
+  return '';
+}
+
 /* aviso flotante al desbloquear (por encima de cualquier pantalla) */
 function showLogroToast(l) {
   const t = LOGRO_TIERS[l.tier];
@@ -108,7 +120,8 @@ function showLogroToast(l) {
   d.className = 'logro-toast';
   d.style.setProperty('--lt-color', t.color);
   d.innerHTML = `<span class="lg-medal">${t.medal}</span>
-    <span class="lg-body"><b>¡LOGRO DESBLOQUEADO!</b><br>${l.name}${l.rewardDesc ? `<br><i>🎁 ${l.rewardDesc}</i>` : ''}</span>`;
+    <span class="lg-body"><b>¡LOGRO DESBLOQUEADO!</b><br>${l.name}${l.rewardDesc ? `<br><i>🎁 Recompensa: ${l.rewardDesc}</i>` : ''}</span>
+    ${logroRewardIconHTML(l)}`;
   document.body.appendChild(d);
   requestAnimationFrame(() => d.classList.add('show'));
   if (typeof Sfx !== 'undefined') Sfx.play('win');
@@ -150,7 +163,8 @@ function renderLogros() {
           <span class="lg-medal">${t.medal}</span>
           <span class="lg-info"><b>${l.name}</b> <span class="lg-tier">${t.name}</span><br>
             <span class="lg-desc">${l.desc}</span>
-            ${l.rewardDesc ? `<br><span class="lg-reward">🎁 ${l.rewardDesc}</span>` : ''}</span>
+            ${l.rewardDesc ? `<br><span class="lg-reward">🎁 Recompensa: ${l.rewardDesc}</span>` : ''}</span>
+          ${logroRewardIconHTML(l)}
         </div>`;
       }).join('')}
       ${ocultos > 0 ? `<div class="lg-row lg-hidden"><span class="lg-medal">🔒</span>

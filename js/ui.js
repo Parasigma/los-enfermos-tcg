@@ -425,7 +425,7 @@ function initCronica() {
 const CARD_BACKS = [
   { id: 'clasico', name: 'Clásico del Manicomio', img: 'assets/reverso.png', owned: () => true },
   { id: 'corrupto', name: 'Reverso Corrupto', img: 'assets/reverso_corrupto.png',
-    logro: 'capitulo1',
+    logro: 'cae_nikuman',
     owned: () => Save.cardBacksOwned.includes('corrupto'), hint: 'Se consigue con logro' },
   { id: 'cyborg', name: 'Reverso Cyborg', img: 'assets/reverso_cyborg.png',
     logro: 'intocable',
